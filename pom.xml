@@ -58,6 +58,8 @@
         <springdoc.version>3.1.1</springdoc.version>
         <archunit.version>1.5.1</archunit.version>
         <aws-sdk.version>2.55.5</aws-sdk.version>
+        <!-- Aligné sur la version utilisée par springdoc -->
+        <swagger-annotations.version>2.2.55</swagger-annotations.version>
         <!-- Plugins qualité (T0.4) -->
         <spotless.version>3.10.2</spotless.version>
         <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
@@ -105,6 +107,11 @@
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
                 <version>${springdoc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>${swagger-annotations.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.tngtech.archunit</groupId>
@@ -220,6 +227,12 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!-- Tests d'intégration *IT (ADR-0011) ; exécutions configurées par spring-boot-starter-parent -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
             </plugin>
 
             <!-- Couverture de tests : rapport par module (seuils ajoutés au jalon M1) -->

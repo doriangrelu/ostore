@@ -5,3 +5,26 @@ spring:
     virtual:
       # Directive projet : toutes les requêtes et tâches planifiées s'exécutent sur des virtual threads.
       enabled: true
+  mvc:
+    problemdetails:
+      # Erreurs de l'API REST au format RFC 9457 (ProblemDetail).
+      enabled: true
+  flyway:
+    # Un répertoire de scripts par SGBD ({vendor} = postgresql | oracle), ADR-0005.
+    locations: classpath:db/migration/{vendor}
+
+springdoc:
+  # Seule l'API REST est décrite par OpenAPI ; l'API S3 est documentée par AWS.
+  paths-to-match: /api/**
+
+ostore:
+  storage:
+    # Driver utilisé pour les nouveaux buckets.
+    default-driver: filesystem
+  s3:
+    # Préfixe de l'API compatible S3 (endpoint des SDK : http://<hôte>:<port>/s3), ADR-0013.
+    base-path: /s3
+  database:
+    # Oracle uniquement : tablespaces dédiés (vides = tablespace par défaut du schéma).
+    table-tablespace:
+    index-tablespace:

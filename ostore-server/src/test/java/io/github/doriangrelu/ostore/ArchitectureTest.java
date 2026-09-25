@@ -19,10 +19,16 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Garde-fou de la clean architecture du module serveur (ADR-0002).
@@ -86,4 +92,57 @@ class ArchitectureTest {
             .dependOnClassesThat()
             .resideInAPackage(BASE + ".contract..")
             .allowEmptyShould(true);
+
+    /**
+     * Directive ADR-0003 : un contrôleur REST implémente une interface du contrat et ne déclare
+     * <b>rien d'autre</b> (ni mapping, ni validation, ni documentation), tout vient du contrat.
+     */
+    @ArchTest
+    static final ArchRule restControllersOnlyImplementTheContract = classes()
+            .that()
+            .resideInAPackage(BASE + ".api.rest..")
+            .and()
+            .areAnnotatedWith(RestController.class)
+            .should(implementAContractInterface())
+            .andShould(declareNoWebAnnotationOnMethodsOrParameters())
+            .allowEmptyShould(true);
+
+    private static ArchCondition<JavaClass> implementAContractInterface() {
+        return new ArchCondition<>("implement an interface of the contract module") {
+            @Override
+            public void check(JavaClass controller, ConditionEvents events) {
+                boolean implementsContract = controller.getAllRawInterfaces().stream()
+                        .anyMatch(type -> type.getPackageName().startsWith(BASE + ".contract"));
+                if (!implementsContract) {
+                    events.add(SimpleConditionEvent.violated(
+                            controller, controller.getName() + " does not implement a contract interface"));
+                }
+            }
+        };
+    }
+
+    private static ArchCondition<JavaClass> declareNoWebAnnotationOnMethodsOrParameters() {
+        return new ArchCondition<>("declare no web, validation or OpenAPI annotation on methods or parameters") {
+            @Override
+            public void check(JavaClass controller, ConditionEvents events) {
+                for (JavaMethod method : controller.getMethods()) {
+                    var annotations = java.util.stream.Stream.concat(
+                            method.getAnnotations().stream(),
+                            method.getParameters().stream().flatMap(p -> p.getAnnotations().stream()));
+                    annotations
+                            .map(annotation -> annotation.getRawType().getPackageName())
+                            .filter(ArchitectureTest::isContractOnlyAnnotation)
+                            .findFirst()
+                            .ifPresent(pkg -> events.add(SimpleConditionEvent.violated(
+                                    method, method.getFullName() + " redeclares an annotation from " + pkg)));
+                }
+            }
+        };
+    }
+
+    private static boolean isContractOnlyAnnotation(String annotationPackage) {
+        return annotationPackage.startsWith("org.springframework.web.bind.annotation")
+                || annotationPackage.startsWith("jakarta.validation")
+                || annotationPackage.startsWith("io.swagger.v3.oas.annotations");
+    }
 }
