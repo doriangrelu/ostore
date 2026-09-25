@@ -13,4 +13,22 @@
     <artifactId>ostore-driver-spi</artifactId>
     <name>OStore :: drivers :: spi</name>
     <description>Storage driver SPI.</description>
+
+    <build>
+        <plugins>
+            <!-- Publie le kit de conformité (src/test) pour les drivers, y compris tiers. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>conformance-kit</id>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

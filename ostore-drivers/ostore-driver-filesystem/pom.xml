@@ -19,5 +19,12 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>ostore-driver-spi</artifactId>
         </dependency>
+        <!-- Kit de conformité de la SPI -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ostore-driver-spi</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
