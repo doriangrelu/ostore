@@ -38,9 +38,12 @@ class BucketController implements BucketApi { ... }
 ```
 `@RestController` est la seule annotation (nécessaire à la détection du bean).
 
-Génération OpenAPI : `springdoc-openapi-maven-plugin` lancé pendant `integration-test` sur
-l'application démarrée ; le fichier `openapi.yaml` est attaché comme artefact Maven
-(classifier `openapi`) et versionné avec le contrat.
+Génération OpenAPI : springdoc expose `/v3/api-docs`, généré depuis les interfaces du contrat
+(vérifié par `OpenApiIT`). La publication du fichier comme artefact Maven (classifier `openapi`)
+est prévue pour la release (jalon M6).
+
+Erreurs : `ProblemDetail` (RFC 9457) avec une propriété `code` issue de l'énumération `ErrorCode`
+du contrat, qui porte aussi le statut HTTP associé.
 
 ## Dépendances du module
 `spring-web` (annotations uniquement), `jakarta.validation-api`, `swagger-annotations-jakarta`.

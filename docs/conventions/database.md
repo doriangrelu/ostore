@@ -45,6 +45,16 @@ Une instruction DDL = un objet. Ordre des fichiers d'une migration :
 - Placeholders vides par défaut → scripts valides sans tablespace dédié.
 - Synonymes et grants dans des locations optionnelles, activées par configuration (voir ADR-0005).
 
+## Exécution des migrations
+- Scripts dans `ostore-server/src/main/resources/db/migration/{postgresql,oracle}` ; Spring Boot choisit
+  le répertoire selon le SGBD (`spring.flyway.locations=classpath:db/migration/{vendor}`).
+- Table d'historique Flyway : `OST_SCHEMA_HISTORY` (Oracle) / `ost_schema_history` (PostgreSQL), dans la
+  casse native du SGBD pour être interrogeable sans guillemets.
+- Tablespaces Oracle : `ostore.database.table-tablespace` et `ostore.database.index-tablespace`
+  (noms validés comme identifiants SQL).
+- Versions : `V<majeure>_<mineure>_<patch>_<étape>__<sujet>_<nature>.sql`, ex.
+  `V1_0_0_002__bucket_indexes.sql`.
+
 ## Évolution
 - Une migration publiée n'est **jamais** modifiée ; toute correction = nouvelle migration.
 - Toute migration est ajoutée **simultanément** pour PostgreSQL et Oracle, testée sur les deux.

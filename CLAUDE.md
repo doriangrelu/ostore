@@ -78,9 +78,12 @@ Sous Windows, utiliser `mvnw.cmd` (PowerShell) ; le Git Bash local n'a ni `sed` 
 | Action | Commande |
 |---|---|
 | Build complet + tests | `./mvnw -B verify` |
-| Un module et ses dépendances | `./mvnw -B verify -pl ostore-server -am` |
+| Un module et ses dépendances | `./mvnw -B verify -pl ostore-server -am` (toujours `-am`, sinon un jar obsolète du contrat est utilisé) |
 | Formater + en-têtes de licence | `./mvnw -B spotless:apply` |
 | Lancer l'application | `./mvnw -B spring-boot:run -pl ostore-server` |
+
+**Docker doit tourner** (Docker Desktop sous Windows) : les TI démarrent PostgreSQL 18 et Oracle Free 23
+via Testcontainers. Le premier démarrage d'Oracle télécharge environ 1,5 Go.
 
 Le build échoue si : format ou en-tête de licence incorrect (Spotless), règle d'architecture violée
 (ArchUnit), Java < 25 ou Maven < 3.9 (Enforcer). Les `package-info.java` reçoivent l'en-tête de

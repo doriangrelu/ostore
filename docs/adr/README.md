@@ -17,3 +17,4 @@ supprimé : une décision remplacée passe en « Remplacé par ADR-XXXX ».
 | [0010](0010-multipart-upload.md) | Multipart upload S3 en v1 (non systématique) | Accepté |
 | [0011](0011-test-strategy.md) | Stratégie de tests : TI traversants d'abord | Accepté |
 | [0012](0012-trunk-based-development.md) | Trunk-based development | Accepté |
+| [0013](0013-http-routing.md) | Routage HTTP : S3 sous `/s3`, REST sous `/api/v1` | Accepté |

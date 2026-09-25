@@ -33,7 +33,10 @@
 
 ## Clean architecture
 - Domaine : aucun import `org.springframework`, `jakarta.persistence`, `software.amazon`.
-- Un cas d'usage = une interface (port entrant) + une implémentation ; commande et résultat en `record`.
+- **Un port entrant par agrégat** (`BucketUseCases`), implémenté par un service de `application`
+  (`BucketService`, un `record` sans annotation) et câblé dans `infrastructure.config`.
+  Les cas d'usage reçoivent des types du domaine (`BucketName`), jamais des chaînes brutes.
+- Un port sortant par besoin technique (`BucketRepository`), implémenté dans `infrastructure`.
 - Exceptions métier dans le domaine (`BucketNotFoundException`…) ; traduction HTTP (ProblemDetail /
   erreur S3 XML) **uniquement** dans les adaptateurs web.
 - Mapping entre couches via des méthodes statiques ou mappers dédiés, pas de MapStruct au départ.

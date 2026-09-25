@@ -20,12 +20,12 @@ Statuts : ⬜ À faire · 🟦 En cours · 🟨 À valider (utilisateur) · ✅ 
 
 | ID | Tâche | Statut | Critères de validation |
 |---|---|---|---|
-| T1.1 | Socle technique serveur : Spring Web MVC, Spring Data JDBC, Flyway (PG + Oracle), springdoc, Testcontainers (conteneurs singleton PG + Oracle Free), classe de base des TI | ⬜ | L'application démarre sur PG et sur Oracle dans un TI ; CI verte |
-| T1.2 🔒 | Migration `OST_BUCKET` PG + Oracle selon les conventions (tables → index → PK/UK → checks → commentaires), placeholders de tablespace Oracle | ⬜ | Relue par l'utilisateur ; appliquée sur les 2 SGBD par le TI |
-| T1.3 | Domaine + cas d'usage buckets (`BucketName` avec règles S3, création, consultation, liste, suppression d'un bucket vide) | ⬜ | Test unitaire paramétré des règles de nommage S3 (seul test unitaire justifié) |
-| T1.4 🔒 | Contrat `BucketApi` + DTO validés + erreurs `ProblemDetail` ; contrôleur = `implements` ; OpenAPI généré | ⬜ | Relu par l'utilisateur ; ArchUnit : contrôleur REST sans annotation de mapping propre |
-| T1.5 | API S3 buckets : CreateBucket, HeadBucket, ListBuckets, DeleteBucket (XML, erreurs S3, adressage path-style) | ⬜ | — |
-| T1.6 | **TI traversant buckets** | ⬜ | Un scénario lisible par SGBD : créer via REST → lister via SDK AWS v2 → nom invalide refusé → supprimer via SDK → absent en REST |
+| T1.1 | Socle technique serveur : Spring Web MVC, Spring Data JDBC, Flyway (PG + Oracle), springdoc, Testcontainers (conteneurs singleton PG + Oracle Free), classe de base des TI | ✅ | L'application démarre sur PG et sur Oracle dans un TI ; CI verte |
+| T1.2 🔒 | Migration `OST_BUCKET` PG + Oracle selon les conventions (tables → index → PK/UK → checks → commentaires), placeholders de tablespace Oracle | 🟨 | Relue par l'utilisateur ; appliquée sur les 2 SGBD par le TI |
+| T1.3 | Domaine + cas d'usage buckets (`BucketName` avec règles S3, création, consultation, liste, suppression d'un bucket vide) | ✅ | Test unitaire paramétré des règles de nommage S3 (seul test unitaire justifié) |
+| T1.4 🔒 | Contrat `BucketApi` + DTO validés + erreurs `ProblemDetail` ; contrôleur = `implements` ; OpenAPI généré | 🟨 | Relu par l'utilisateur ; ArchUnit : contrôleur REST sans annotation de mapping propre |
+| T1.5 | API S3 buckets : CreateBucket, HeadBucket, ListBuckets, DeleteBucket (XML, erreurs S3, adressage path-style) | ✅ | — |
+| T1.6 | **TI traversant buckets** | ✅ | Un scénario lisible par SGBD : créer via REST → lister via SDK AWS v2 → nom invalide refusé → supprimer via SDK → absent en REST |
 
 ## M2 — Tranche « Objets »
 
