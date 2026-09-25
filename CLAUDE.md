@@ -44,6 +44,8 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 8. **Persistance** : Spring Data JDBC (ADR-0004), entités de persistance séparées du domaine.
 9. **Objets en attente** : invisibles sauf via `resourceId` ou en-tête `x-ostore-transaction-id` (ADR-0009).
 10. **Authentification S3** : décision reportée au jalon M5 (ADR-0008).
+    **Multipart S3** : en v1, **non systématique** : uniquement si le client l'initie, désactivable ;
+    un `PutObject` simple reste mono-blob (ADR-0010).
 11. **Code** : lisible, simple, factorisé, moderne (records, sealed, pattern matching, streams, lambdas, `Optional`).
 12. **Méthode** : travailler par tâches (`docs/TASKS.md`), chacune avec critères de validation ;
     une tâche n'est « Terminée » qu'une fois ses critères vérifiés (build + tests) et, pour les tâches

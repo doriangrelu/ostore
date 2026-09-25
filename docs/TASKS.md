@@ -24,7 +24,7 @@ Statuts : ⬜ À faire · 🟦 En cours · 🟨 À valider (utilisateur) · ✅ 
 | T1.2 | Machine à états des transactions (sealed + pattern matching) | ⬜ | Toutes les transitions testées, transitions illégales rejetées |
 | T1.3 | Ports + cas d'usage (application) | ⬜ | Tests unitaires avec fakes en mémoire |
 | T1.4 | Compléter ArchUnit : contrôleurs REST = `implements` d'une interface du contrat, sans annotation de mapping | ⬜ | Contrôleur non conforme → build rouge |
-| T1.6 | Modèle d'objet composite (parties) prévu dans le domaine si ADR-0010 accepté | ⬜ | Invariants testés |
+| T1.6 | Contenu d'objet sealed : `SingleBlobContent` (défaut) / `CompositeContent` (parties, ADR-0010) | ⬜ | Invariants testés (numérotation, 5 Mo min sauf dernière partie, ETag multipart) |
 | T1.5 🔒 | Module `ostore-contract` : interfaces Spring MVC + DTO validés + annotations OpenAPI | ⬜ | Relu par l'utilisateur ; OpenAPI généré depuis les interfaces ; upload/download d'un fichier de plusieurs Go avec un tas JVM réduit (ex. `-Xmx256m`) |
 
 ## M2 — Persistance
@@ -44,7 +44,7 @@ Statuts : ⬜ À faire · 🟦 En cours · 🟨 À valider (utilisateur) · ✅ 
 | T3.2 | Driver FileSystem (écriture atomique, arborescence sharding) | ⬜ | Kit de conformité vert |
 | T3.3 | Driver S3 (AWS SDK v2) | ⬜ | Kit de conformité vert sur MinIO |
 
-## M4 — API REST · M5 — API S3 · M5b — Multipart (si ADR-0010 accepté) · M6 — Transactions bout en bout · M7 — Release
+## M4 — API REST · M5 — API S3 · M5b — Multipart (ADR-0010) · M6 — Transactions bout en bout · M7 — Release
 
 _Détaillés à l'ouverture de chaque jalon (voir [PLAN.md](PLAN.md) §5)._
 

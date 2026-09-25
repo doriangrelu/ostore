@@ -20,7 +20,7 @@ Chaque réponse d'écriture renvoie : **identifiant de ressource** (`resourceId`
 |---|---|
 | Buckets : create, delete, head, list | Versioning S3, lifecycle, policies, ACL |
 | Objets : put, get (+ Range), head, delete, list (V2), copy | — |
-| Multipart upload : **proposé en v1**, voir ADR-0010 | |
+| Multipart upload à l'initiative du client, désactivable (ADR-0010) | ListMultipartUploads, UploadPartCopy (v1.1) |
 | Métadonnées utilisateur `x-amz-meta-*` | Chiffrement serveur, réplication |
 | Transactions : open, commit, rollback, expiration, consultation | IHM, multi-tenant avancé |
 | Drivers : FileSystem, S3 | Autres drivers (Azure, GCS…) — via SPI |

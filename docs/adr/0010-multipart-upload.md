@@ -1,6 +1,14 @@
 # ADR-0010 — Multipart upload S3 en v1
 
-- Statut : **Proposé** (analyse demandée par l'utilisateur le 2026-09-25, en attente de décision)
+- Statut : **Accepté** (validé par l'utilisateur le 2026-09-25 : multipart en v1, **non systématique**)
+
+## Décision
+- Le multipart est une **option à l'initiative du client** (opérations S3 multipart), jamais un
+  passage obligé : un `PutObject` simple reste un objet **mono-blob**, sans table de parties ni
+  lecture composite. Seuls les objets créés par `CompleteMultipartUpload` sont composites.
+- Le support est activable/désactivable par configuration (`ostore.s3.multipart.enabled`, `true`
+  par défaut) ; désactivé, les opérations multipart répondent `501 NotImplemented` comme S3.
+- Livraison dans le jalon **M5b**, selon la conception ci-dessous.
 
 ## Contexte : pourquoi la question se pose
 - `aws cli` bascule en multipart **dès 8 Mo** ; les SDK AWS (Transfer Manager, S3 CRT) au-delà
@@ -55,7 +63,6 @@ pourra plus tard exploiter le multipart natif de S3 comme optimisation, sans imp
 
 Ordre de grandeur : comparable à l'ensemble `PutObject` + `GetObject`. Aucun point bloquant identifié.
 
-## Recommandation
-**Inclure le multipart en v1**, dans un jalon dédié **M5b** placé juste après l'API S3 de base.
-Il ne perturbe pas le reste du plan : le domaine prévoit seulement dès M1 qu'un objet peut être
-composé de parties.
+## Impact sur le plan
+Jalon **M5b** juste après l'API S3 de base. Dès M1, le domaine distingue les deux formes de
+contenu d'un objet (sealed) : `SingleBlobContent` (cas par défaut) et `CompositeContent` (parties).
