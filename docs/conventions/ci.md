@@ -29,5 +29,6 @@
 Sans ce secret, l'étape Sonar est simplement ignorée : la CI reste verte.
 
 ## Seuils
-Les seuils de couverture (JaCoCo `check`) et la Quality Gate Sonar seront fixés au jalon M1, quand
-le domaine contiendra du code (cible : ≥ 90 % sur `domain` et `application`).
+La couverture **fusionne tests unitaires et TI** (ADR-0011). C'est un indicateur, pas un objectif :
+un seuil global modéré et la Quality Gate Sonar seront fixés au jalon M1, une fois les premiers TI
+traversants en place.

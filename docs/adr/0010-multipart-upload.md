@@ -8,7 +8,7 @@
   lecture composite. Seuls les objets créés par `CompleteMultipartUpload` sont composites.
 - Le support est activable/désactivable par configuration (`ostore.s3.multipart.enabled`, `true`
   par défaut) ; désactivé, les opérations multipart répondent `501 NotImplemented` comme S3.
-- Livraison dans le jalon **M5b**, selon la conception ci-dessous.
+- Livraison dans le jalon **M4**, selon la conception ci-dessous.
 
 ## Contexte : pourquoi la question se pose
 - `aws cli` bascule en multipart **dès 8 Mo** ; les SDK AWS (Transfer Manager, S3 CRT) au-delà
@@ -64,5 +64,5 @@ pourra plus tard exploiter le multipart natif de S3 comme optimisation, sans imp
 Ordre de grandeur : comparable à l'ensemble `PutObject` + `GetObject`. Aucun point bloquant identifié.
 
 ## Impact sur le plan
-Jalon **M5b** juste après l'API S3 de base. Dès M1, le domaine distingue les deux formes de
+Jalon **M4** juste après l'API S3 de base. Dès M1, le domaine distingue les deux formes de
 contenu d'un objet (sealed) : `SingleBlobContent` (cas par défaut) et `CompositeContent` (parties).

@@ -144,18 +144,22 @@ index unique fonctionnel `CASE WHEN STATUS='ACTIVE' …` (Oracle).
 Identifiants : **UUID v7** (triables dans le temps → index B-tree efficaces), stockés en `UUID`
 (PostgreSQL) / `RAW(16)` (Oracle).
 
-## 5. Roadmap par jalons
+## 5. Roadmap par tranches verticales
 
-| Jalon | Contenu | Livrable vérifiable |
+En cohérence avec le trunk-based development (ADR-0012) et la stratégie de tests (ADR-0011), chaque
+jalon est une **tranche verticale** : migration PG + Oracle → domaine → cas d'usage → API REST et S3.
+Chaque tranche est prouvée par des **TI traversants** et livrable sur `main`. Une tranche en cours
+reste derrière un feature flag.
+
+| Jalon | Tranche | TI traversants qui la prouvent |
 |---|---|---|
-| **M0 — Fondations** | Méthode, ADR, build multi-module, CI, qualité | `./mvnw verify` vert, ArchUnit en place |
-| **M1 — Domaine & contrat** | Modèle, cas d'usage, DTO/interfaces | Tests unitaires domaine ≥ 90 % |
-| **M2 — Persistance** | Migrations PG + Oracle, adaptateur JDBC | Migrations testées sur les 2 SGBD (Testcontainers) |
-| **M3 — Drivers** | SPI, FileSystem, S3 | Suite de tests de conformité commune aux drivers |
-| **M4 — API REST** | Buckets, objets, transactions (JSON) | Tests MockMvc + OpenAPI publié |
-| **M5 — API S3** | Sous-ensemble S3, XML, erreurs | Tests avec **AWS SDK v2** et `aws cli` réels |
-| **M6 — Transactions bout en bout** | Expiration, purge, cluster | Test IT : dépôt → expiration → blob supprimé |
-| **M7 — Release OSS** | README, CONTRIBUTING, NOTICE, image Docker, publication contrat | Tag `v0.1.0` |
+| **M0 — Fondations** | Méthode, ADR, build, CI, qualité, skills | `./mvnw verify` vert, CI verte |
+| **M1 — Buckets** | Socle technique (Spring Web, Spring Data JDBC, Flyway, Testcontainers) + buckets de bout en bout | Créer par REST → lister par SDK AWS → supprimer ; sur PostgreSQL **et** Oracle |
+| **M2 — Objets** | SPI + drivers FileSystem et S3 ; put/get/head/delete/list/copy ; streaming | Aller-retour d'un fichier de plusieurs Go à mémoire bornée ; même scénario sur chaque driver |
+| **M3 — Transactions** | open/commit/rollback/extend, visibilité, expiration, purge | Dépôt en attente → invisible → commit → visible ; dépôt → expiration → blob supprimé |
+| **M4 — Multipart** | Opérations multipart S3 (flag) | Upload multipart par `aws cli` / SDK → lecture complète et par `Range` |
+| **M5 — Exploitation** | Rendu SQL DBA, tablespaces/synonymes Oracle, authentification S3 (ADR-0008) | Migrations Oracle avec tablespaces et synonymes ; SQL rendu exécutable |
+| **M6 — Release OSS** | CONTRIBUTING, image Docker, publication du contrat et des drivers | Tag `v0.1.0` |
 
 Le détail des tâches est dans [TASKS.md](TASKS.md).
 

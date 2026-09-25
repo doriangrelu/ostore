@@ -15,3 +15,5 @@ supprimé : une décision remplacée passe en « Remplacé par ADR-XXXX ».
 | [0008](0008-s3-authentication.md) | Authentification de l'API S3 | Reporté (M5) |
 | [0009](0009-pending-objects-visibility.md) | Visibilité des objets en attente | Accepté |
 | [0010](0010-multipart-upload.md) | Multipart upload S3 en v1 (non systématique) | Accepté |
+| [0011](0011-test-strategy.md) | Stratégie de tests : TI traversants d'abord | Accepté |
+| [0012](0012-trunk-based-development.md) | Trunk-based development | Accepté |

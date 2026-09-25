@@ -11,6 +11,14 @@
    Mise à jour de la doc touchée (ADR, conventions, CLAUDE.md, README).
 6. **Commit** : un commit par tâche (ou sous-tâche cohérente), selon la convention ci-dessous.
 
+## Trunk-based development (ADR-0012)
+- On intègre sur `main` par **petits incréments** (commit direct ou branche de moins d'un jour).
+- Avant chaque push : `./mvnw verify` vert en local. Si `main` casse, on corrige ou on revert
+  **immédiatement**.
+- Une fonctionnalité inachevée est livrée **désactivée** derrière un feature flag
+  (`ostore.<domaine>.<fonction>.enabled`), jamais gardée sur une branche.
+- Une tâche se découpe en incréments intégrables (migration → domaine → cas d'usage → API).
+
 ## Convention de commit
 [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/), messages en anglais :
 

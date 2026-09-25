@@ -38,7 +38,11 @@
   erreur S3 XML) **uniquement** dans les adaptateurs web.
 - Mapping entre couches via des méthodes statiques ou mappers dédiés, pas de MapStruct au départ.
 
-## Tests
-- JUnit 5 + AssertJ ; noms de méthodes `should_<résultat>_when_<condition>`.
-- Unitaires (`*Test`, surefire) sans Spring ; intégration (`*IT`, failsafe) avec Testcontainers.
-- Fakes en mémoire pour les ports plutôt que des mocks quand c'est plus lisible.
+## Tests (ADR-0011)
+- **Par défaut, un test d'intégration traversant** (`*IT`, failsafe) : application démarrée,
+  Testcontainers, appel par un vrai client (SDK AWS, client du contrat). Un test = un scénario
+  métier lisible, avec *given / when / then* visibles.
+- **Test unitaire** (`*Test`, surefire, sans Spring) seulement pour une règle pure et combinatoire,
+  de préférence en `@ParameterizedTest`.
+- JUnit + AssertJ ; noms de méthodes en phrase : `should_<résultat>_when_<condition>`.
+- Pas de mock de nos propres classes ; pas d'objectif de nombre de tests.
