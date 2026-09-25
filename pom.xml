@@ -241,8 +241,9 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <!-- Fuseau volontairement ≠ UTC : prouve que les dates sont stockées en UTC
-                         quel que soit le fuseau de la JVM (la CI tourne en UTC). -->
-                    <argLine>@{argLine} -Duser.timezone=Europe/Paris</argLine>
+                         quel que soit le fuseau de la JVM (la CI tourne en UTC). Tas limité : les fichiers de
+                         plusieurs Go doivent traverser OStore en flux (ADR-0003). -->
+                    <argLine>@{argLine} -Duser.timezone=Europe/Paris -Xmx512m</argLine>
                 </configuration>
             </plugin>
 

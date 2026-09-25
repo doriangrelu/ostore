@@ -17,7 +17,9 @@ package io.github.doriangrelu.ostore.application.service;
 
 import io.github.doriangrelu.ostore.application.port.in.BucketUseCases;
 import io.github.doriangrelu.ostore.application.port.out.BucketRepository;
+import io.github.doriangrelu.ostore.application.port.out.ObjectRepository;
 import io.github.doriangrelu.ostore.domain.exception.BucketAlreadyExistsException;
+import io.github.doriangrelu.ostore.domain.exception.BucketNotEmptyException;
 import io.github.doriangrelu.ostore.domain.exception.BucketNotFoundException;
 import io.github.doriangrelu.ostore.domain.model.Bucket;
 import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
@@ -36,16 +38,19 @@ import java.util.List;
 public final class BucketService implements BucketUseCases {
 
     private final BucketRepository buckets;
+    private final ObjectRepository objects;
     private final Clock clock;
     private final String defaultDriverId;
 
     /**
-     * @param buckets stockage des métadonnées
+     * @param buckets stockage des métadonnées de buckets
+     * @param objects stockage des métadonnées d'objets (contrôle « bucket vide »)
      * @param clock horloge (injectée pour rester testable)
-     * @param defaultDriverId driver attribué aux nouveaux buckets
+     * @param defaultDriverId instance de driver attribuée aux nouveaux buckets
      */
-    public BucketService(BucketRepository buckets, Clock clock, String defaultDriverId) {
+    public BucketService(BucketRepository buckets, ObjectRepository objects, Clock clock, String defaultDriverId) {
         this.buckets = buckets;
+        this.objects = objects;
         this.clock = clock;
         this.defaultDriverId = defaultDriverId;
     }
@@ -68,9 +73,13 @@ public final class BucketService implements BucketUseCases {
         return buckets.findAll();
     }
 
+    /** @throws BucketNotEmptyException si le bucket contient encore des objets */
     @Override
     public void delete(BucketName name) {
-        // La vérification « bucket vide » arrive avec les objets (tranche M2).
-        buckets.delete(get(name));
+        var bucket = get(name);
+        if (objects.existsInBucket(bucket.id())) {
+            throw new BucketNotEmptyException(name);
+        }
+        buckets.delete(bucket);
     }
 }

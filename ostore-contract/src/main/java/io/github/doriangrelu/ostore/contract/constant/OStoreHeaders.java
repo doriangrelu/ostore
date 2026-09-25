@@ -15,17 +15,18 @@
  */
 package io.github.doriangrelu.ostore.contract.constant;
 
-/** Chemins de l'API REST, partagés entre le serveur et les clients. */
-public final class ApiPaths {
+/** En-têtes HTTP propres à OStore. */
+public final class OStoreHeaders {
 
-    /** Racine de l'API REST, version 1. */
-    public static final String API_V1 = "/api/v1";
+    /**
+     * Métadonnée utilisateur, répétable : {@code X-OStore-Meta: nom=valeur}. La valeur est percent-encodée en
+     * UTF-8 (RFC 3986), ce qui autorise tout caractère, y compris la virgule. Envoyé au dépôt, renvoyé à la
+     * lecture du contenu.
+     */
+    public static final String META = "X-OStore-Meta";
 
-    /** Collection des buckets. */
-    public static final String BUCKETS = API_V1 + "/buckets";
+    /** Identifiant de ressource de l'objet, renvoyé à la lecture du contenu. */
+    public static final String RESOURCE_ID = "X-OStore-Resource-Id";
 
-    /** Collection des objets d'un bucket ({@code {bucket}} = nom du bucket). */
-    public static final String OBJECTS = BUCKETS + "/{bucket}/objects";
-
-    private ApiPaths() {}
+    private OStoreHeaders() {}
 }

@@ -13,19 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.doriangrelu.ostore.contract.constant;
+package io.github.doriangrelu.ostore.domain.exception;
 
-/** Chemins de l'API REST, partagés entre le serveur et les clients. */
-public final class ApiPaths {
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 
-    /** Racine de l'API REST, version 1. */
-    public static final String API_V1 = "/api/v1";
+/** Un bucket ne peut être supprimé que vide. */
+public final class BucketNotEmptyException extends DomainException {
 
-    /** Collection des buckets. */
-    public static final String BUCKETS = API_V1 + "/buckets";
-
-    /** Collection des objets d'un bucket ({@code {bucket}} = nom du bucket). */
-    public static final String OBJECTS = BUCKETS + "/{bucket}/objects";
-
-    private ApiPaths() {}
+    public BucketNotEmptyException(BucketName name) {
+        super("Bucket not empty: '%s'".formatted(name));
+    }
 }

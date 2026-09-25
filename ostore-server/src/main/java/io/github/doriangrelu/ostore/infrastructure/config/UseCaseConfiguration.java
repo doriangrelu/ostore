@@ -16,10 +16,15 @@
 package io.github.doriangrelu.ostore.infrastructure.config;
 
 import io.github.doriangrelu.ostore.application.port.in.BucketUseCases;
+import io.github.doriangrelu.ostore.application.port.in.ObjectUseCases;
+import io.github.doriangrelu.ostore.application.port.out.BlobPurgeQueue;
 import io.github.doriangrelu.ostore.application.port.out.BucketRepository;
+import io.github.doriangrelu.ostore.application.port.out.ObjectRepository;
+import io.github.doriangrelu.ostore.application.port.out.StorageDrivers;
 import io.github.doriangrelu.ostore.application.service.BucketService;
+import io.github.doriangrelu.ostore.application.service.ObjectService;
+import io.github.doriangrelu.ostore.infrastructure.properties.StorageProperties;
 import java.time.Clock;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -37,7 +42,17 @@ class UseCaseConfiguration {
 
     @Bean
     BucketUseCases bucketUseCases(
-            BucketRepository buckets, Clock clock, @Value("${ostore.storage.default-driver}") String defaultDriverId) {
-        return new BucketService(buckets, clock, defaultDriverId);
+            BucketRepository buckets, ObjectRepository objects, Clock clock, StorageProperties storage) {
+        return new BucketService(buckets, objects, clock, storage.defaultDriver());
+    }
+
+    @Bean
+    ObjectUseCases objectUseCases(
+            BucketRepository buckets,
+            ObjectRepository objects,
+            BlobPurgeQueue purgeQueue,
+            StorageDrivers drivers,
+            Clock clock) {
+        return new ObjectService(buckets, objects, purgeQueue, drivers, clock);
     }
 }

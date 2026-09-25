@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.doriangrelu.ostore.contract.constant;
+package io.github.doriangrelu.ostore.application.result;
 
-/** Chemins de l'API REST, partagés entre le serveur et les clients. */
-public final class ApiPaths {
+import io.github.doriangrelu.ostore.domain.model.StoredObject;
+import io.github.doriangrelu.ostore.domain.model.vo.RangeRequest;
+import java.io.InputStream;
+import java.util.Optional;
 
-    /** Racine de l'API REST, version 1. */
-    public static final String API_V1 = "/api/v1";
-
-    /** Collection des buckets. */
-    public static final String BUCKETS = API_V1 + "/buckets";
-
-    /** Collection des objets d'un bucket ({@code {bucket}} = nom du bucket). */
-    public static final String OBJECTS = BUCKETS + "/{bucket}/objects";
-
-    private ApiPaths() {}
-}
+/**
+ * Contenu d'un objet ouvert en lecture ; l'appelant ferme le flux.
+ *
+ * @param object objet lu
+ * @param stream contenu (entier, ou seulement la plage demandée)
+ * @param range plage servie, absente pour le contenu complet
+ */
+public record ObjectContent(StoredObject object, InputStream stream, Optional<RangeRequest.Resolved> range) {}

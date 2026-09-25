@@ -13,19 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.doriangrelu.ostore.contract.constant;
+package io.github.doriangrelu.ostore.domain.exception;
 
-/** Chemins de l'API REST, partagés entre le serveur et les clients. */
-public final class ApiPaths {
+/** Les métadonnées utilisateur sont mal formées ou trop volumineuses. */
+public final class InvalidMetadataException extends DomainException {
 
-    /** Racine de l'API REST, version 1. */
-    public static final String API_V1 = "/api/v1";
-
-    /** Collection des buckets. */
-    public static final String BUCKETS = API_V1 + "/buckets";
-
-    /** Collection des objets d'un bucket ({@code {bucket}} = nom du bucket). */
-    public static final String OBJECTS = BUCKETS + "/{bucket}/objects";
-
-    private ApiPaths() {}
+    public InvalidMetadataException(String reason) {
+        super("Invalid metadata: " + reason);
+    }
 }

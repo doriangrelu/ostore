@@ -19,8 +19,20 @@ springdoc:
 
 ostore:
   storage:
-    # Driver utilisé pour les nouveaux buckets.
-    default-driver: filesystem
+    # Instance de driver attribuée aux nouveaux buckets.
+    default-driver: local
+    # Instances de drivers (ADR-0007, ADR-0015). "layout" (optionnel) : date | hashed | flat,
+    # sinon la stratégie recommandée par le driver (date). Le chemin calculé est stocké en base.
+    drivers:
+      local:
+        type: filesystem
+        properties:
+          root: ./data/blobs
+  purge:
+    # Suppression asynchrone des blobs remplacés ou supprimés (ADR-0006).
+    interval: PT30S
+    batch-size: 100
+    max-backoff: PT1H
   database:
     # Oracle uniquement : tablespaces dédiés (vides = tablespace par défaut du schéma).
     table-tablespace:

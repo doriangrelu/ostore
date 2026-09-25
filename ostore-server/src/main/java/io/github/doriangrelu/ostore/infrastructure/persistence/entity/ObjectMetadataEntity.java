@@ -13,19 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.doriangrelu.ostore.contract.constant;
+package io.github.doriangrelu.ostore.infrastructure.persistence.entity;
 
-/** Chemins de l'API REST, partagés entre le serveur et les clients. */
-public final class ApiPaths {
+import org.springframework.data.relational.core.mapping.Table;
 
-    /** Racine de l'API REST, version 1. */
-    public static final String API_V1 = "/api/v1";
-
-    /** Collection des buckets. */
-    public static final String BUCKETS = API_V1 + "/buckets";
-
-    /** Collection des objets d'un bucket ({@code {bucket}} = nom du bucket). */
-    public static final String OBJECTS = BUCKETS + "/{bucket}/objects";
-
-    private ApiPaths() {}
-}
+/**
+ * Ligne de la table {@code OST_OBJECT_METADATA}, rattachée à son objet par {@code OBJECT_ID}.
+ *
+ * @param name nom de la métadonnée
+ * @param value valeur
+ */
+@Table("OST_OBJECT_METADATA")
+public record ObjectMetadataEntity(String name, String value) {}

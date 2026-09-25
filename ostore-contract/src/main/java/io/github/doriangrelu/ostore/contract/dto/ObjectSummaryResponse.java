@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.doriangrelu.ostore.contract.constant;
+package io.github.doriangrelu.ostore.contract.dto;
 
-/** Chemins de l'API REST, partagés entre le serveur et les clients. */
-public final class ApiPaths {
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.Instant;
 
-    /** Racine de l'API REST, version 1. */
-    public static final String API_V1 = "/api/v1";
-
-    /** Collection des buckets. */
-    public static final String BUCKETS = API_V1 + "/buckets";
-
-    /** Collection des objets d'un bucket ({@code {bucket}} = nom du bucket). */
-    public static final String OBJECTS = BUCKETS + "/{bucket}/objects";
-
-    private ApiPaths() {}
-}
+/**
+ * Objet dans une liste.
+ *
+ * @param key clé de l'objet
+ * @param size taille en octets
+ * @param etag empreinte MD5 hexadécimale du contenu
+ * @param contentType type MIME
+ * @param lastModified date du dépôt (UTC)
+ */
+@Schema(description = "Object in a listing")
+public record ObjectSummaryResponse(String key, long size, String etag, String contentType, Instant lastModified) {}

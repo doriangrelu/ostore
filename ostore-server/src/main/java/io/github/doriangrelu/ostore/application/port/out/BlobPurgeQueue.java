@@ -13,19 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.doriangrelu.ostore.contract.constant;
+package io.github.doriangrelu.ostore.application.port.out;
 
-/** Chemins de l'API REST, partagés entre le serveur et les clients. */
-public final class ApiPaths {
+import io.github.doriangrelu.ostore.domain.model.vo.BlobLocation;
 
-    /** Racine de l'API REST, version 1. */
-    public static final String API_V1 = "/api/v1";
+/**
+ * File des blobs à supprimer physiquement. La suppression est asynchrone, idempotente et rejouée en cas
+ * d'échec (ADR-0006) : la base reste la source de vérité, le stockage est nettoyé ensuite.
+ */
+public interface BlobPurgeQueue {
 
-    /** Collection des buckets. */
-    public static final String BUCKETS = API_V1 + "/buckets";
-
-    /** Collection des objets d'un bucket ({@code {bucket}} = nom du bucket). */
-    public static final String OBJECTS = BUCKETS + "/{bucket}/objects";
-
-    private ApiPaths() {}
+    /** Planifie la suppression d'un blob (orphelin, remplacé ou supprimé). */
+    void schedule(BlobLocation location);
 }

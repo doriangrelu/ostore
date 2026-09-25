@@ -20,6 +20,8 @@ import io.github.doriangrelu.ostore.contract.constant.ApiPaths;
 import io.github.doriangrelu.ostore.contract.dto.BucketListResponse;
 import io.github.doriangrelu.ostore.contract.dto.BucketResponse;
 import io.github.doriangrelu.ostore.contract.dto.CreateBucketRequest;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
@@ -40,7 +42,7 @@ public final class OStoreRestClient implements BucketApi {
     }
 
     @Override
-    public BucketResponse create(CreateBucketRequest request) {
+    public @Nullable BucketResponse create(@NonNull CreateBucketRequest request) {
         return http.post()
                 .uri(ApiPaths.BUCKETS)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -50,17 +52,17 @@ public final class OStoreRestClient implements BucketApi {
     }
 
     @Override
-    public BucketListResponse list() {
+    public @Nullable BucketListResponse list() {
         return http.get().uri(ApiPaths.BUCKETS).retrieve().body(BucketListResponse.class);
     }
 
     @Override
-    public BucketResponse get(String name) {
+    public @Nullable BucketResponse get(@NonNull String name) {
         return http.get().uri(ApiPaths.BUCKETS + "/{name}", name).retrieve().body(BucketResponse.class);
     }
 
     @Override
-    public void delete(String name) {
+    public void delete(@NonNull String name) {
         http.delete().uri(ApiPaths.BUCKETS + "/{name}", name).retrieve().toBodilessEntity();
     }
 

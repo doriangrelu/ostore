@@ -18,6 +18,7 @@ package io.github.doriangrelu.ostore.it.support;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import io.github.doriangrelu.ostore.it.client.OStoreRestClient;
+import io.github.doriangrelu.ostore.it.client.ObjectRestClient;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.springframework.web.client.HttpClientErrorException;
@@ -31,8 +32,14 @@ import org.springframework.web.client.HttpClientErrorException;
  */
 public interface IntegrationScenario {
 
-    /** Client de l'API REST, construit sur les interfaces du contrat. */
+    /** Client REST des buckets, construit sur l'interface {@code BucketApi} du contrat. */
     OStoreRestClient rest();
+
+    /** Client REST des objets, construit sur l'interface {@code ObjectApi} du contrat (flux binaires). */
+    ObjectRestClient objects();
+
+    /** Accès au stockage physique (chemins enregistrés, présence des blobs). */
+    StorageProbe storage();
 
     /** Nom de bucket unique : isole les scénarios sans nettoyer la base. */
     default String uniqueBucketName() {

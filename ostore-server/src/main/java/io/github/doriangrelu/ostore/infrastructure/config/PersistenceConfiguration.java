@@ -15,6 +15,7 @@
  */
 package io.github.doriangrelu.ostore.infrastructure.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import io.github.doriangrelu.ostore.infrastructure.persistence.converter.BytesToUuidConverter;
 import io.github.doriangrelu.ostore.infrastructure.persistence.converter.InstantToUtcOffsetDateTimeConverter;
 import io.github.doriangrelu.ostore.infrastructure.persistence.converter.OffsetDateTimeToInstantConverter;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -70,6 +72,27 @@ class PersistenceConfiguration extends AbstractJdbcConfiguration {
         var mappingContext = super.jdbcMappingContext(namingStrategy, customConversions, jdbcManagedTypes);
         mappingContext.setForceQuote(false);
         return mappingContext;
+    }
+
+    /**
+     * Oracle : comparaisons et tris <b>binaires</b> dans chaque session. Le driver JDBC dérive sinon
+     * {@code NLS_SORT} de la langue de la JVM (ex. {@code FRENCH}), et l'ordre des clés d'objets ne serait plus
+     * celui de la pagination (ADR-0015). Ne remplace pas une requête d'initialisation déjà configurée.
+     */
+    @Bean
+    static BeanPostProcessor oracleBinaryCollation() {
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessBeforeInitialization(Object bean, String beanName) {
+                if (bean instanceof HikariDataSource dataSource
+                        && dataSource.getJdbcUrl() != null
+                        && dataSource.getJdbcUrl().startsWith("jdbc:oracle:")
+                        && dataSource.getConnectionInitSql() == null) {
+                    dataSource.setConnectionInitSql("ALTER SESSION SET NLS_SORT = BINARY NLS_COMP = BINARY");
+                }
+                return bean;
+            }
+        };
     }
 
     /** Les entités ne sont pas dans le package de cette configuration : il faut l'indiquer. */

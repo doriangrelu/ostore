@@ -23,8 +23,19 @@ package io.github.doriangrelu.ostore.contract.error;
  */
 public enum ErrorCode {
     INVALID_BUCKET_NAME(400),
+    INVALID_OBJECT_KEY(400),
+    INVALID_METADATA(400),
+    /** Le nombre d'octets reçus diffère du {@code Content-Length} annoncé ; rien n'est enregistré. */
+    CONTENT_LENGTH_MISMATCH(400),
     BUCKET_NOT_FOUND(404),
+    OBJECT_NOT_FOUND(404),
     BUCKET_ALREADY_EXISTS(409),
+    BUCKET_NOT_EMPTY(409),
+    /** Écriture simultanée sur la même clé : la requête peut être rejouée. */
+    CONCURRENT_UPDATE(409),
+    RANGE_NOT_SATISFIABLE(416),
+    /** Le support de stockage (disque, backend S3…) a échoué. */
+    STORAGE_ERROR(500),
     INTERNAL_ERROR(500);
 
     /** Nom de la propriété du {@code ProblemDetail} qui porte le code. */
