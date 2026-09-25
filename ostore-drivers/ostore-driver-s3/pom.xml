@@ -19,5 +19,29 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>ostore-driver-spi</artifactId>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <exclusions>
+                <!-- Client asynchrone inutile : le driver est synchrone (virtual threads). -->
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Kit de conformité de la SPI, exécuté sur Adobe S3Mock -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ostore-driver-spi</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
