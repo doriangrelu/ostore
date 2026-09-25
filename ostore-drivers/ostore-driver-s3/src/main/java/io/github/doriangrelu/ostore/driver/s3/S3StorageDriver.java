@@ -18,7 +18,7 @@ package io.github.doriangrelu.ostore.driver.s3;
 import io.github.doriangrelu.ostore.driver.spi.StorageDriver;
 import io.github.doriangrelu.ostore.driver.spi.exception.BlobNotFoundException;
 import io.github.doriangrelu.ostore.driver.spi.exception.StorageException;
-import io.github.doriangrelu.ostore.driver.spi.model.BlobKey;
+import io.github.doriangrelu.ostore.driver.spi.model.BlobPath;
 import io.github.doriangrelu.ostore.driver.spi.model.ByteRange;
 import java.io.InputStream;
 import java.util.Optional;
@@ -56,7 +56,7 @@ public final class S3StorageDriver implements StorageDriver, AutoCloseable {
     }
 
     @Override
-    public void write(BlobKey key, InputStream content, long size) {
+    public void write(BlobPath key, InputStream content, long size) {
         try {
             client.putObject(
                     request -> request.bucket(bucket).key(objectKey(key)).contentLength(size),
@@ -67,7 +67,7 @@ public final class S3StorageDriver implements StorageDriver, AutoCloseable {
     }
 
     @Override
-    public InputStream read(BlobKey key, Optional<ByteRange> range) {
+    public InputStream read(BlobPath key, Optional<ByteRange> range) {
         try {
             return client.getObject(request -> {
                 request.bucket(bucket).key(objectKey(key));
@@ -81,7 +81,7 @@ public final class S3StorageDriver implements StorageDriver, AutoCloseable {
     }
 
     @Override
-    public void delete(BlobKey key) {
+    public void delete(BlobPath key) {
         try {
             client.deleteObject(request -> request.bucket(bucket).key(objectKey(key)));
         } catch (SdkException e) {
@@ -90,7 +90,7 @@ public final class S3StorageDriver implements StorageDriver, AutoCloseable {
     }
 
     @Override
-    public boolean exists(BlobKey key) {
+    public boolean exists(BlobPath key) {
         try {
             client.headObject(request -> request.bucket(bucket).key(objectKey(key)));
             return true;
@@ -109,7 +109,7 @@ public final class S3StorageDriver implements StorageDriver, AutoCloseable {
         client.close();
     }
 
-    private String objectKey(BlobKey key) {
+    private String objectKey(BlobPath key) {
         return prefix + key.value();
     }
 }

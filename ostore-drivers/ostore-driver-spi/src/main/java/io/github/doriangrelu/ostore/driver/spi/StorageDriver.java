@@ -17,7 +17,9 @@ package io.github.doriangrelu.ostore.driver.spi;
 
 import io.github.doriangrelu.ostore.driver.spi.exception.BlobNotFoundException;
 import io.github.doriangrelu.ostore.driver.spi.exception.StorageException;
-import io.github.doriangrelu.ostore.driver.spi.model.BlobKey;
+import io.github.doriangrelu.ostore.driver.spi.layout.BlobPathLayout;
+import io.github.doriangrelu.ostore.driver.spi.layout.DateBlobPathLayout;
+import io.github.doriangrelu.ostore.driver.spi.model.BlobPath;
 import io.github.doriangrelu.ostore.driver.spi.model.ByteRange;
 import java.io.InputStream;
 import java.util.Optional;
@@ -25,8 +27,9 @@ import java.util.Optional;
 /**
  * Support physique de stockage des blobs (contenus binaires) d'OStore.
  *
- * <p>Un driver ne connaît ni les buckets, ni les clés utilisateur, ni les transactions : il manipule des
- * {@link BlobKey} opaques générées par le serveur, jamais réutilisées. Toutes les opérations travaillent
+ * <p>Un driver ne connaît ni les buckets, ni les clés utilisateur, ni les transactions : il range chaque blob
+ * exactement au {@link BlobPath} reçu (calculé par une {@link BlobPathLayout} et stocké en base), sous sa
+ * propre racine, sans réorganisation. Toutes les opérations travaillent
  * <b>en flux</b> : aucune implémentation ne doit charger un blob entier en mémoire.
  *
  * <p>Toute implémentation doit passer le kit de conformité fourni par le {@code test-jar} de ce module.
@@ -37,17 +40,28 @@ public interface StorageDriver {
     String id();
 
     /**
+     * Stratégie d'organisation des chemins recommandée pour ce support, utilisée quand la configuration de
+     * l'instance n'en impose pas ({@code ostore.storage.drivers.<id>.layout}). Un driver la redéfinit si
+     * son support l'exige.
+     *
+     * @return nom d'une {@link BlobPathLayout} ({@code date} par défaut)
+     */
+    default String defaultLayout() {
+        return DateBlobPathLayout.NAME;
+    }
+
+    /**
      * Écrit un nouveau blob.
      *
      * <p>L'écriture est atomique du point de vue des lecteurs : un blob partiellement écrit n'est
      * jamais visible. En cas d'échec, aucun blob n'est laissé sous cette clé.
      *
-     * @param key clé du blob, inédite
+     * @param key chemin du blob, inédit
      * @param content contenu, lu jusqu'à la fin du flux ; non fermé par le driver
      * @param size taille annoncée en octets (certains backends l'exigent avant l'envoi)
      * @throws StorageException si l'écriture échoue
      */
-    void write(BlobKey key, InputStream content, long size);
+    void write(BlobPath key, InputStream content, long size);
 
     /**
      * Ouvre un blob en lecture ; l'appelant ferme le flux.
@@ -55,11 +69,11 @@ public interface StorageDriver {
      * @param range plage d'octets, déjà résolue et comprise dans le blob, ou vide pour tout le contenu
      * @throws BlobNotFoundException si le blob n'existe pas
      */
-    InputStream read(BlobKey key, Optional<ByteRange> range);
+    InputStream read(BlobPath key, Optional<ByteRange> range);
 
     /** Supprime un blob ; sans effet s'il n'existe pas (idempotent). */
-    void delete(BlobKey key);
+    void delete(BlobPath key);
 
     /** Indique si le blob existe. */
-    boolean exists(BlobKey key);
+    boolean exists(BlobPath key);
 }

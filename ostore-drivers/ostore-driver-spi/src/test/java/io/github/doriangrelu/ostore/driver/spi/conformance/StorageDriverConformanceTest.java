@@ -23,10 +23,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.doriangrelu.ostore.driver.spi.StorageDriver;
 import io.github.doriangrelu.ostore.driver.spi.exception.BlobNotFoundException;
-import io.github.doriangrelu.ostore.driver.spi.model.BlobKey;
+import io.github.doriangrelu.ostore.driver.spi.layout.DateBlobPathLayout;
+import io.github.doriangrelu.ostore.driver.spi.model.BlobPath;
 import io.github.doriangrelu.ostore.driver.spi.model.ByteRange;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -45,7 +47,7 @@ public abstract class StorageDriverConformanceTest {
 
     @Test
     void should_read_back_written_content_entirely_and_by_range() throws IOException {
-        var key = newKey();
+        var key = newPath();
         driver().write(key, stream(SMALL, 1), SMALL);
 
         assertThat(driver().exists(key)).isTrue();
@@ -60,7 +62,7 @@ public abstract class StorageDriverConformanceTest {
 
     @Test
     void should_stream_a_large_blob() {
-        var key = newKey();
+        var key = newPath();
 
         driver().write(key, stream(LARGE, 2), LARGE);
 
@@ -69,7 +71,7 @@ public abstract class StorageDriverConformanceTest {
 
     @Test
     void should_delete_idempotently_and_report_missing_blobs() {
-        var key = newKey();
+        var key = newPath();
         driver().write(key, stream(SMALL, 3), SMALL);
 
         driver().delete(key);
@@ -77,10 +79,11 @@ public abstract class StorageDriverConformanceTest {
 
         assertThat(driver().exists(key)).isFalse();
         assertThatThrownBy(() -> driver().read(key, Optional.empty())).isInstanceOf(BlobNotFoundException.class);
-        assertThatThrownBy(() -> driver().read(newKey(), Optional.empty())).isInstanceOf(BlobNotFoundException.class);
+        assertThatThrownBy(() -> driver().read(newPath(), Optional.empty())).isInstanceOf(BlobNotFoundException.class);
     }
 
-    private static BlobKey newKey() {
-        return new BlobKey(UUID.randomUUID().toString());
+    /** Chemin imbriqué (stratégie par défaut) : le driver doit créer l'arborescence. */
+    private static BlobPath newPath() {
+        return new DateBlobPathLayout().pathOf(UUID.randomUUID(), Instant.now());
     }
 }

@@ -13,14 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.doriangrelu.ostore.driver.spi.exception;
 
-import io.github.doriangrelu.ostore.driver.spi.model.BlobPath;
+/**
+ * Stratégies d'organisation des chemins de blobs (date, répartition, à plat), extensibles par {@code ServiceLoader}.
+ */
+@NullMarked
+package io.github.doriangrelu.ostore.driver.spi.layout;
 
-/** Le blob demandé n'existe pas sur le support. */
-public class BlobNotFoundException extends StorageException {
-
-    public BlobNotFoundException(BlobPath key) {
-        super("Blob not found: " + key);
-    }
-}
+import org.jspecify.annotations.NullMarked;

@@ -23,7 +23,7 @@ import io.github.doriangrelu.ostore.driver.filesystem.io.BoundedInputStream;
 import io.github.doriangrelu.ostore.driver.spi.StorageDriver;
 import io.github.doriangrelu.ostore.driver.spi.exception.BlobNotFoundException;
 import io.github.doriangrelu.ostore.driver.spi.exception.StorageException;
-import io.github.doriangrelu.ostore.driver.spi.model.BlobKey;
+import io.github.doriangrelu.ostore.driver.spi.model.BlobPath;
 import io.github.doriangrelu.ostore.driver.spi.model.ByteRange;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,8 +40,8 @@ import java.util.UUID;
  * Driver de stockage sur système de fichiers (local ou partagé).
  *
  * <ul>
- *   <li>Répartition sur deux niveaux de répertoires, tirés des 4 derniers caractères de la clé (partie
- *       aléatoire d'un UUID v7), pour éviter des répertoires démesurés.
+ *   <li>Chaque blob est rangé à {@code <root>/<chemin>} : l'arborescence (par date, répartie…) est décidée
+ *       par la stratégie de chemins, pas par le driver.
  *   <li>Écriture atomique : fichier temporaire dans le même répertoire, {@code fsync}, puis
  *       {@code ATOMIC_MOVE}. Un blob partiel n'est jamais visible.
  * </ul>
@@ -62,9 +62,9 @@ public final class FilesystemStorageDriver implements StorageDriver {
     }
 
     @Override
-    public void write(BlobKey key, InputStream content, long size) {
+    public void write(BlobPath key, InputStream content, long size) {
         var target = pathOf(key);
-        var temporary = target.resolveSibling(target.getFileName() + ".tmp-" + UUID.randomUUID());
+        var temporary = target.resolveSibling(key.fileName() + ".tmp-" + UUID.randomUUID());
         try {
             Files.createDirectories(target.getParent());
             try (var channel = FileChannel.open(temporary, CREATE_NEW, WRITE)) {
@@ -79,7 +79,7 @@ public final class FilesystemStorageDriver implements StorageDriver {
     }
 
     @Override
-    public InputStream read(BlobKey key, Optional<ByteRange> range) {
+    public InputStream read(BlobPath key, Optional<ByteRange> range) {
         try {
             var channel = FileChannel.open(pathOf(key), READ);
             if (range.isEmpty()) {
@@ -96,7 +96,7 @@ public final class FilesystemStorageDriver implements StorageDriver {
     }
 
     @Override
-    public void delete(BlobKey key) {
+    public void delete(BlobPath key) {
         try {
             Files.deleteIfExists(pathOf(key));
         } catch (IOException e) {
@@ -105,16 +105,17 @@ public final class FilesystemStorageDriver implements StorageDriver {
     }
 
     @Override
-    public boolean exists(BlobKey key) {
+    public boolean exists(BlobPath key) {
         return Files.isRegularFile(pathOf(key));
     }
 
-    private Path pathOf(BlobKey key) {
-        var value = key.value();
-        int length = value.length();
-        return root.resolve(value.substring(length - 2))
-                .resolve(value.substring(length - 4, length - 2))
-                .resolve(value);
+    private Path pathOf(BlobPath key) {
+        var path = root.resolve(key.value()).normalize();
+        if (!path.startsWith(root)) {
+            // Impossible avec un BlobPath valide ; garde-fou contre toute évasion de la racine.
+            throw new StorageException("Blob path escapes the storage root: " + key);
+        }
+        return path;
     }
 
     private static void deleteQuietly(Path path) {

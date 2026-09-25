@@ -13,14 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.doriangrelu.ostore.driver.spi.exception;
+package io.github.doriangrelu.ostore.driver.spi.layout;
 
 import io.github.doriangrelu.ostore.driver.spi.model.BlobPath;
+import java.time.Instant;
+import java.util.UUID;
 
-/** Le blob demandé n'existe pas sur le support. */
-public class BlobNotFoundException extends StorageException {
+/** Stratégie {@code flat} : {@code <id>} à la racine, adaptée aux stockages objet sans notion de répertoire. */
+public final class FlatBlobPathLayout implements BlobPathLayout {
 
-    public BlobNotFoundException(BlobPath key) {
-        super("Blob not found: " + key);
+    public static final String NAME = "flat";
+
+    @Override
+    public String name() {
+        return NAME;
+    }
+
+    @Override
+    public BlobPath pathOf(UUID blobId, Instant createdAt) {
+        return new BlobPath(blobId.toString());
     }
 }
