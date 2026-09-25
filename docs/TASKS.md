@@ -22,10 +22,10 @@ Statuts : ⬜ À faire · 🟦 En cours · 🟨 À valider (utilisateur) · ✅ 
 |---|---|---|---|
 | T1.1 | Socle technique serveur : Spring Web MVC, Spring Data JDBC, Flyway (PG + Oracle), springdoc, Testcontainers (conteneurs singleton PG + Oracle Free), classe de base des TI | ✅ | L'application démarre sur PG et sur Oracle dans un TI ; CI verte |
 | T1.2 🔒 | Migration `OST_BUCKET` PG + Oracle selon les conventions (tables → index → PK/UK → checks → commentaires), placeholders de tablespace Oracle | 🟨 | Relue par l'utilisateur ; appliquée sur les 2 SGBD par le TI |
-| T1.3 | Domaine + cas d'usage buckets (`BucketName` avec règles S3, création, consultation, liste, suppression d'un bucket vide) | ✅ | Test unitaire paramétré des règles de nommage S3 (seul test unitaire justifié) |
+| T1.3 | Domaine + cas d'usage buckets (`BucketName` avec règles de nommage, création, consultation, liste, suppression d'un bucket vide) | ✅ | Test unitaire paramétré des règles de nommage (seul test unitaire justifié) |
 | T1.4 🔒 | Contrat `BucketApi` + DTO validés + erreurs `ProblemDetail` ; contrôleur = `implements` ; OpenAPI généré | 🟨 | Relu par l'utilisateur ; ArchUnit : contrôleur REST sans annotation de mapping propre |
-| T1.5 | API S3 buckets : CreateBucket, HeadBucket, ListBuckets, DeleteBucket (XML, erreurs S3, adressage path-style) | ✅ | — |
-| T1.6 | **TI traversant buckets** | ✅ | Un scénario lisible par SGBD : créer via REST → lister via SDK AWS v2 → nom invalide refusé → supprimer via SDK → absent en REST |
+| T1.5 | ~~API S3 buckets (XML)~~ : livrée puis **retirée** (ADR-0014, API JSON uniquement) | ❌ | — |
+| T1.6 | **TI traversant buckets** | ✅ | Scénarios lisibles par SGBD : créer → lire → lister → supprimer → absent ; doublon (409) et nom invalide (400) refusés |
 
 ## M2 — Tranche « Objets »
 
@@ -34,8 +34,8 @@ Statuts : ⬜ À faire · 🟦 En cours · 🟨 À valider (utilisateur) · ✅ 
 | T2.1 | SPI `StorageDriver` + kit de conformité (`test-jar`) | ⬜ | Kit exécuté par chaque driver |
 | T2.2 | Driver FileSystem (écriture atomique, sharding) | ⬜ | Kit vert |
 | T2.3 | Driver S3 (AWS SDK v2) | ⬜ | Kit vert sur MinIO |
-| T2.4 | Objets de bout en bout : migration, domaine (contenu sealed `SingleBlobContent` / `CompositeContent`), REST + S3 (put/get+Range/head/delete/list V2/copy, `x-amz-meta-*`, `aws-chunked`) | ⬜ | — |
-| T2.5 | **TI traversants objets** | ⬜ | Aller-retour via SDK AWS avec checksums par défaut ; fichier de plusieurs Go avec `-Xmx256m` ; lecture `Range` ; même scénario sur chaque driver |
+| T2.4 | Objets de bout en bout : migration, domaine (contenu sealed `SingleBlobContent` / `CompositeContent`), API JSON (put/get+Range/head/delete/list/copy, métadonnées `x-ostore-meta-*`) | ⬜ | — |
+| T2.5 | **TI traversants objets** | ⬜ | Aller-retour via le client du contrat ; fichier de plusieurs Go avec `-Xmx256m` ; lecture `Range` ; même scénario sur chaque driver |
 
 ## M3 — Transactions · M4 — Multipart · M5 — Exploitation · M6 — Release
 

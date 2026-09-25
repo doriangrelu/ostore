@@ -36,12 +36,13 @@ Un package ne contient **qu'un seul type de classe**. Règles vérifiées par `P
 
 | Package | Contenu |
 |---|---|
-| `domain.model` | Agrégats et value objects (records immuables) |
+| `domain.model` | Agrégats et entités métier (records immuables) |
+| `domain.model.vo` | Value objects : valeurs sans identité validées à la construction (`BucketName`…) |
 | `domain.exception` | Exceptions métier (`DomainException` et filles) |
 | `domain.util` | Utilitaires purs (identifiants…) |
 | `application.port.in` / `application.port.out` | Ports entrants / sortants |
 | `application.service` | Services applicatifs (**classes, jamais de records**, champs `private final`) |
-| `api.<protocole>.controller` / `.handler` / `.mapper` | Contrôleurs / traduction d'erreurs / conversion DTO |
+| `api.rest.controller` / `.handler` / `.mapper` | Contrôleurs / traduction d'erreurs / conversion DTO |
 | `infrastructure.config` | Classes `@Configuration` |
 | `infrastructure.properties` | `@ConfigurationProperties` |
 | `infrastructure.persistence.entity` / `.repository` / `.adapter` / `.converter` | Entités / repositories Spring Data / adaptateurs des ports / convertisseurs |
@@ -56,13 +57,13 @@ un cast vers la classe concrète donnerait accès aux ports de sortie et cassera
   (`BucketService`, un `record` sans annotation) et câblé dans `infrastructure.config`.
   Les cas d'usage reçoivent des types du domaine (`BucketName`), jamais des chaînes brutes.
 - Un port sortant par besoin technique (`BucketRepository`), implémenté dans `infrastructure`.
-- Exceptions métier dans le domaine (`BucketNotFoundException`…) ; traduction HTTP (ProblemDetail /
-  erreur S3 XML) **uniquement** dans les adaptateurs web.
+- Exceptions métier dans le domaine (`BucketNotFoundException`…) ; traduction HTTP (ProblemDetail)
+  **uniquement** dans l'adaptateur REST.
 - Mapping entre couches via des méthodes statiques ou mappers dédiés, pas de MapStruct au départ.
 
 ## Tests (ADR-0011)
 - **Par défaut, un test d'intégration traversant** (`*IT`, failsafe) : application démarrée,
-  Testcontainers, appel par un vrai client (SDK AWS, client du contrat). Un test = un scénario
+  Testcontainers, appel par un vrai client (construit sur le contrat). Un test = un scénario
   métier lisible, avec *given / when / then* visibles.
 - **Test unitaire** (`*Test`, surefire, sans Spring) seulement pour une règle pure et combinatoire,
   de préférence en `@ParameterizedTest`.

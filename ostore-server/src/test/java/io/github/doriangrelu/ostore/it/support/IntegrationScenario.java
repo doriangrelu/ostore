@@ -21,10 +21,9 @@ import io.github.doriangrelu.ostore.it.client.OStoreRestClient;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.springframework.web.client.HttpClientErrorException;
-import software.amazon.awssdk.services.s3.S3Client;
 
 /**
- * Socle des scénarios traversants (ADR-0011) : les clients réels d'OStore et quelques helpers.
+ * Socle des scénarios traversants (ADR-0011) : le client réel d'OStore et quelques helpers.
  *
  * <p>Un scénario est une interface dont les méthodes {@code @Test} sont des {@code default} : il est écrit
  * une seule fois et exécuté sur chaque SGBD par une classe vide qui étend {@link PostgresIntegrationTest}
@@ -34,9 +33,6 @@ public interface IntegrationScenario {
 
     /** Client de l'API REST, construit sur les interfaces du contrat. */
     OStoreRestClient rest();
-
-    /** Client S3 officiel d'AWS, pointé sur OStore. */
-    S3Client s3();
 
     /** Nom de bucket unique : isole les scénarios sans nettoyer la base. */
     default String uniqueBucketName() {

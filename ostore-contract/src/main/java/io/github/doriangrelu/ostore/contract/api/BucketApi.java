@@ -42,7 +42,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * (Spring Cloud OpenFeign, OpenFeign avec {@code feign-spring}, générateur OpenAPI…). Les erreurs sont
  * des {@code ProblemDetail} portant un {@link io.github.doriangrelu.ostore.contract.error.ErrorCode}.
  */
-@Tag(name = "Buckets", description = "Logical containers of objects, also exposed through the S3 API")
+@Tag(name = "Buckets", description = "Logical containers of objects")
 @RequestMapping(path = ApiPaths.BUCKETS, produces = APPLICATION_JSON_VALUE)
 public interface BucketApi {
 

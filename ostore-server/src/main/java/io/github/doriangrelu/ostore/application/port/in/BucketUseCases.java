@@ -18,10 +18,10 @@ package io.github.doriangrelu.ostore.application.port.in;
 import io.github.doriangrelu.ostore.domain.exception.BucketAlreadyExistsException;
 import io.github.doriangrelu.ostore.domain.exception.BucketNotFoundException;
 import io.github.doriangrelu.ostore.domain.model.Bucket;
-import io.github.doriangrelu.ostore.domain.model.BucketName;
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 import java.util.List;
 
-/** Cas d'usage des buckets, appelés par les API REST et S3. */
+/** Cas d'usage des buckets, appelés par l'API REST. */
 public interface BucketUseCases {
 
     /**
@@ -38,7 +38,7 @@ public interface BucketUseCases {
      */
     Bucket get(BucketName name);
 
-    /** Tous les buckets, triés par nom (ordre de ListBuckets S3). */
+    /** Tous les buckets, triés par nom. */
     List<Bucket> list();
 
     /**

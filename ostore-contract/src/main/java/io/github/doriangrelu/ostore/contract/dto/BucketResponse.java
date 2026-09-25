@@ -23,14 +23,14 @@ import java.util.UUID;
  * Représentation d'un bucket.
  *
  * @param id identifiant de ressource
- * @param name nom du bucket (clé S3)
+ * @param name nom du bucket (clé unique)
  * @param createdAt date de création
  */
 @Schema(description = "Bucket")
 public record BucketResponse(
         @Schema(description = "Resource identifier") UUID id,
 
-        @Schema(description = "Bucket name (S3 key)", example = "invoices-2026")
+        @Schema(description = "Bucket name (unique key)", example = "invoices-2026")
         String name,
 
         @Schema(description = "Creation date") Instant createdAt) {}

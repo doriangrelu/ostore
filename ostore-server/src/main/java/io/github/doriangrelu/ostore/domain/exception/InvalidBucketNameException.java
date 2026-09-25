@@ -15,7 +15,7 @@
  */
 package io.github.doriangrelu.ostore.domain.exception;
 
-/** Le nom proposé ne respecte pas les règles de nommage S3. */
+/** Le nom proposé ne respecte pas les règles de nommage des buckets. */
 public final class InvalidBucketNameException extends DomainException {
 
     public InvalidBucketNameException(String name) {

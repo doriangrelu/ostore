@@ -23,7 +23,7 @@ import io.github.doriangrelu.ostore.contract.api.BucketApi;
 import io.github.doriangrelu.ostore.contract.dto.BucketListResponse;
 import io.github.doriangrelu.ostore.contract.dto.BucketResponse;
 import io.github.doriangrelu.ostore.contract.dto.CreateBucketRequest;
-import io.github.doriangrelu.ostore.domain.model.BucketName;
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Adaptateur REST des buckets : mapping HTTP, validation et documentation viennent du contrat. */

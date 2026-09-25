@@ -1,68 +1,51 @@
-# ADR-0010 — Multipart upload S3 en v1
+# ADR-0010 — Upload multipart en v1
 
-- Statut : **Accepté** (validé par l'utilisateur le 2026-09-25 : multipart en v1, **non systématique**)
+- Statut : **Accepté** (validé par l'utilisateur le 2026-09-25 : multipart en v1, **non systématique**).
+  Révisé par ADR-0014 : les opérations sont des endpoints JSON du contrat, et non plus le protocole S3.
+
+## Contexte
+Les gros fichiers (plusieurs Go) sont une exigence forte (ADR-0003). Un envoi en une seule requête
+reste possible et streamé, mais il ne peut pas être repris après une coupure ni parallélisé.
+Le multipart découpe l'envoi en parties indépendantes, qu'on peut reprendre et paralléliser.
 
 ## Décision
-- Le multipart est une **option à l'initiative du client** (opérations S3 multipart), jamais un
-  passage obligé : un `PutObject` simple reste un objet **mono-blob**, sans table de parties ni
-  lecture composite. Seuls les objets créés par `CompleteMultipartUpload` sont composites.
-- Le support est activable/désactivable par configuration (`ostore.s3.multipart.enabled`, `true`
-  par défaut) ; désactivé, les opérations multipart répondent `501 NotImplemented` comme S3.
-- Livraison dans le jalon **M4**, selon la conception ci-dessous.
+- Le multipart est une **option à l'initiative du client**, jamais un passage obligé. Un envoi
+  simple reste un objet **mono-blob**, sans table de parties ni lecture composite. Seuls les objets
+  finalisés par multipart sont composites.
+- Activable par configuration : `ostore.multipart.enabled` (`true` par défaut). Désactivé, les
+  endpoints répondent `501` avec le code `MULTIPART_DISABLED`.
+- Livraison au jalon **M4**.
 
-## Contexte : pourquoi la question se pose
-- `aws cli` bascule en multipart **dès 8 Mo** ; les SDK AWS (Transfer Manager, S3 CRT) au-delà
-  d'un seuil comparable.
-- Un `PutObject` S3 simple est limité à **5 Go**.
-- Sans multipart, les gros fichiers (exigence forte, ADR-0003) ne passeraient donc pas par l'API
-  S3 avec les outils standards.
+## Opérations (API JSON, sous `/api/v1/buckets/{bucket}`)
 
-## Périmètre S3 à couvrir
-
-| Opération | Requête | Nécessaire v1 |
+| Opération | Requête | Réponse |
 |---|---|---|
-| CreateMultipartUpload | `POST /{bucket}/{key}?uploads` | Oui |
-| UploadPart | `PUT /{bucket}/{key}?partNumber=N&uploadId=U` | Oui |
-| CompleteMultipartUpload | `POST /{bucket}/{key}?uploadId=U` (corps XML : parties + ETags) | Oui |
-| AbortMultipartUpload | `DELETE /{bucket}/{key}?uploadId=U` | Oui |
-| ListParts | `GET /{bucket}/{key}?uploadId=U` | Oui (reprise d'upload par les SDK) |
-| ListMultipartUploads | `GET /{bucket}?uploads` | Non (v1.1) |
-| UploadPartCopy | `PUT` + `x-amz-copy-source` | Non (v1.1) |
+| Démarrer | `POST /uploads` — JSON : clé, type de contenu, métadonnées, transaction éventuelle | `uploadId`, `resourceId`, `transactionId` |
+| Envoyer une partie | `PUT /uploads/{uploadId}/parts/{partNumber}` — corps binaire en flux | numéro, taille, ETag de la partie |
+| Lister les parties | `GET /uploads/{uploadId}/parts` | parties reçues (pour reprendre l'envoi) |
+| Finaliser | `POST /uploads/{uploadId}/complete` — JSON : liste ordonnée (numéro, ETag) | objet créé (id, clé, ETag, transaction) |
+| Abandonner | `DELETE /uploads/{uploadId}` | `204` |
 
-Règles S3 : parties numérotées de 1 à 10 000, **5 Mo minimum** sauf la dernière, 5 Go maximum
-par partie. ETag final = `md5(concaténation des md5 binaires des parties)-N`.
+Règles (configurables) : parties numérotées de 1 à 10 000, **5 Mio minimum** sauf la dernière.
+ETag final = `md5(concaténation des md5 binaires des parties)-N`, convention reprise de S3 car
+éprouvée.
 
-## Conception proposée : objet composite, sans recopie
-1. `CreateMultipartUpload` crée un objet `PENDING` et un **upload** rattaché à une transaction :
-   explicite (`x-ostore-transaction-id`) ou implicite (TTL configurable, défaut 24 h).
-   Un upload abandonné expire donc **exactement comme une transaction**. Aucun nouveau mécanisme
-   de nettoyage n'est nécessaire.
-2. `UploadPart` écrit chaque partie comme un **blob ordinaire** via la SPI existante
-   (`StorageDriver.write`), et l'enregistre dans une table `OST_OBJECT_PART` (numéro, taille, md5,
-   clé de stockage). Renvoyer une partie avec le même numéro remplace l'ancienne, qui part en purge.
-3. `CompleteMultipartUpload` vérifie la liste (ordre, ETags, 5 Mo minimum) puis marque l'objet
-   comme **composite** : il n'y a **aucune concaténation physique**.
-4. Lecture : `GET` enchaîne les flux des parties dans l'ordre (`SequenceInputStream` paresseux).
-   Un `Range` est résolu par les tailles cumulées des parties, puis seules les parties utiles sont lues.
-5. Abort, rollback ou expiration : les parties partent dans `OST_BLOB_PURGE`, comme n'importe quel blob.
+## Conception : objet composite, sans recopie
+1. Démarrer crée un objet `PENDING` et un **upload** rattaché à une transaction : explicite, ou
+   implicite avec un TTL configurable (24 h par défaut). Un upload abandonné expire donc **exactement
+   comme une transaction**. Aucun nouveau mécanisme de nettoyage n'est nécessaire.
+2. Chaque partie est écrite comme un **blob ordinaire** via la SPI (`StorageDriver.write`) et
+   enregistrée dans `OST_OBJECT_PART` (numéro, taille, md5, clé de stockage). Renvoyer un numéro
+   remplace la partie, et l'ancienne part en purge.
+3. Finaliser vérifie la liste (ordre, ETags, tailles) puis marque l'objet **composite** : il n'y a
+   **aucune concaténation physique**.
+4. Lecture : les flux des parties sont enchaînés dans l'ordre (paresseusement). Un `Range` est résolu
+   par les tailles cumulées, et seules les parties utiles sont lues.
+5. Abandon, rollback ou expiration : les parties partent dans `OST_BLOB_PURGE`.
 
-**La SPI des drivers ne change pas.** Aucun driver n'a à connaître le multipart. Le driver S3
-pourra plus tard exploiter le multipart natif de S3 comme optimisation, sans impact sur le contrat.
-
-## Estimation de difficulté
-**Modérée.** L'essentiel réutilise des briques déjà prévues (transactions, purge, streaming) :
-
-| Travail | Effort |
-|---|---|
-| 5 endpoints S3 + parsing/sérialisation XML | Moyen |
-| Table `OST_OBJECT_PART` (PG + Oracle, index, FK) | Faible |
-| Lecture composite et résolution des `Range` | Moyen, à tester soigneusement |
-| Calcul de l'ETag multipart, contrôles de taille | Faible |
-| Checksums SDK (CRC32/CRC64NVME en trailer `aws-chunked`) | Déjà nécessaire pour `PutObject` |
-| Tests avec `aws cli` et SDK v2 sur fichiers de plusieurs Go | Moyen |
-
-Ordre de grandeur : comparable à l'ensemble `PutObject` + `GetObject`. Aucun point bloquant identifié.
+**La SPI des drivers ne change pas.** Le driver S3 pourra plus tard exploiter le multipart natif de
+son backend comme optimisation, sans impact sur le contrat.
 
 ## Impact sur le plan
-Jalon **M4** juste après l'API S3 de base. Dès M1, le domaine distingue les deux formes de
-contenu d'un objet (sealed) : `SingleBlobContent` (cas par défaut) et `CompositeContent` (parties).
+Dès le jalon M2, le domaine distingue les deux formes de contenu d'un objet (sealed) :
+`SingleBlobContent` (par défaut) et `CompositeContent` (parties).

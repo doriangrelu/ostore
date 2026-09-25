@@ -22,7 +22,7 @@ import jakarta.validation.constraints.Size;
 /**
  * Demande de création d'un bucket.
  *
- * <p>La validation ne contrôle ici que la forme générale. Les règles complètes de nommage S3 sont
+ * <p>La validation ne contrôle ici que la forme générale. Les règles complètes de nommage sont
  * appliquées par le serveur (erreur {@code INVALID_BUCKET_NAME}).
  *
  * @param name nom du bucket
@@ -30,7 +30,7 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "Bucket creation request")
 public record CreateBucketRequest(
         @Schema(
-                description = "Bucket name, following S3 naming rules",
+                description = "Bucket name: 3-63 lowercase letters, digits, dots or hyphens",
                 example = "invoices-2026",
                 minLength = 3,
                 maxLength = 63)

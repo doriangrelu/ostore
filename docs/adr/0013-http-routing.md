@@ -1,6 +1,6 @@
 # ADR-0013 — Routage HTTP : API S3 sous `/s3`, API REST sous `/api/v1`
 
-- Statut : **Accepté** (2026-09-25, tranche M1)
+- Statut : **Remplacé par ADR-0014** (2026-09-25) : l'API S3 est abandonnée, il n'y a plus qu'une API JSON sous `/api/v1`.
 
 ## Contexte
 L'API S3 en adressage *path-style* place le nom du bucket en premier segment (`/{bucket}/{key}`).

@@ -16,46 +16,22 @@
 package io.github.doriangrelu.ostore.it.support;
 
 import io.github.doriangrelu.ostore.it.client.OStoreRestClient;
-import java.net.URI;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
 
 /**
- * Application OStore complète démarrée sur un port aléatoire, appelée par de vrais clients HTTP.
+ * Application OStore complète démarrée sur un port aléatoire, appelée par un vrai client HTTP.
  *
  * <p>Le contexte Spring et les conteneurs sont partagés entre toutes les classes d'un même SGBD.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 abstract class IntegrationTest implements IntegrationScenario {
 
-    /** Clients S3 par port : un par contexte Spring, réutilisés entre les tests. */
-    private static final Map<Integer, S3Client> S3_CLIENTS = new ConcurrentHashMap<>();
-
     @LocalServerPort
     private int port;
 
     @Override
     public OStoreRestClient rest() {
-        return new OStoreRestClient(baseUrl());
-    }
-
-    @Override
-    public S3Client s3() {
-        return S3_CLIENTS.computeIfAbsent(port, _ -> S3Client.builder()
-                .endpointOverride(URI.create(baseUrl() + "/s3"))
-                .forcePathStyle(true)
-                .region(Region.US_EAST_1)
-                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("ostore", "ostore")))
-                .build());
-    }
-
-    protected String baseUrl() {
-        return "http://localhost:" + port;
+        return new OStoreRestClient("http://localhost:" + port);
     }
 }

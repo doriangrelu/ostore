@@ -15,8 +15,10 @@
  */
 package io.github.doriangrelu.ostore.domain.model;
 
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 import io.github.doriangrelu.ostore.domain.util.Identifiers;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -24,9 +26,10 @@ import java.util.UUID;
  * Bucket : conteneur logique d'objets.
  *
  * @param id identifiant technique (UUID v7)
- * @param name nom unique, conforme aux règles S3
+ * @param name nom unique
  * @param driverId driver de stockage physique des objets du bucket
- * @param createdAt date de création
+ * @param createdAt date de création, à la microseconde (précision commune à PostgreSQL et Oracle :
+ *     la valeur renvoyée à la création est ainsi identique à celle relue ensuite)
  */
 public record Bucket(UUID id, BucketName name, String driverId, Instant createdAt) {
 
@@ -34,7 +37,7 @@ public record Bucket(UUID id, BucketName name, String driverId, Instant createdA
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(driverId, "driverId");
-        Objects.requireNonNull(createdAt, "createdAt");
+        createdAt = Objects.requireNonNull(createdAt, "createdAt").truncatedTo(ChronoUnit.MICROS);
     }
 
     /** Crée un nouveau bucket, stocké par le driver donné. */

@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /**
  * Traduit les exceptions métier en {@link ProblemDetail} (RFC 9457) portant un {@link ErrorCode}.
  *
- * <p>Limité aux contrôleurs REST : l'API S3 a son propre format d'erreur.
+ * <p>Limité aux contrôleurs REST.
  */
 @RestControllerAdvice(basePackageClasses = BucketController.class)
 public class RestExceptionHandler {

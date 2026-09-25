@@ -14,16 +14,13 @@ spring:
     locations: classpath:db/migration/{vendor}
 
 springdoc:
-  # Seule l'API REST est décrite par OpenAPI ; l'API S3 est documentée par AWS.
+  # Seule l'API REST est décrite (pas les endpoints techniques).
   paths-to-match: /api/**
 
 ostore:
   storage:
     # Driver utilisé pour les nouveaux buckets.
     default-driver: filesystem
-  s3:
-    # Préfixe de l'API compatible S3 (endpoint des SDK : http://<hôte>:<port>/s3), ADR-0013.
-    base-path: /s3
   database:
     # Oracle uniquement : tablespaces dédiés (vides = tablespace par défaut du schéma).
     table-tablespace:

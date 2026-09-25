@@ -12,9 +12,10 @@ supprimé : une décision remplacée passe en « Remplacé par ADR-XXXX ».
 | [0005](0005-database-migrations.md) | Migrations Flyway PostgreSQL / Oracle | Accepté |
 | [0006](0006-transaction-model.md) | Modèle de transaction, versions physiques et purge | Accepté |
 | [0007](0007-storage-driver-spi.md) | SPI des drivers de stockage | Accepté |
-| [0008](0008-s3-authentication.md) | Authentification de l'API S3 | Reporté (M5) |
+| [0008](0008-api-authentication.md) | Authentification de l'API | Reporté (M5) |
 | [0009](0009-pending-objects-visibility.md) | Visibilité des objets en attente | Accepté |
-| [0010](0010-multipart-upload.md) | Multipart upload S3 en v1 (non systématique) | Accepté |
+| [0010](0010-multipart-upload.md) | Upload multipart en v1 (non systématique, JSON) | Accepté |
 | [0011](0011-test-strategy.md) | Stratégie de tests : TI traversants d'abord | Accepté |
 | [0012](0012-trunk-based-development.md) | Trunk-based development | Accepté |
-| [0013](0013-http-routing.md) | Routage HTTP : S3 sous `/s3`, REST sous `/api/v1` | Accepté |
+| [0013](0013-http-routing.md) | Routage HTTP : S3 sous `/s3`, REST sous `/api/v1` | Remplacé par ADR-0014 |
+| [0014](0014-json-api-only.md) | Une seule API, en JSON : abandon de la compatibilité S3 | Accepté |

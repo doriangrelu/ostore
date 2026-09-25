@@ -15,7 +15,7 @@
  */
 package io.github.doriangrelu.ostore.domain.exception;
 
-import io.github.doriangrelu.ostore.domain.model.BucketName;
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 
 /** Un bucket porte déjà ce nom (les noms sont uniques sur l'instance). */
 public final class BucketAlreadyExistsException extends DomainException {

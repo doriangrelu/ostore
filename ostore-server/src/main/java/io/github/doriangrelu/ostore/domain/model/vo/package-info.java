@@ -15,9 +15,9 @@
  */
 
 /**
- * Contrôleurs du protocole S3.
+ * Value objects du domaine : valeurs immuables sans identité, validées à la construction (ex. {@code BucketName}).
  */
 @NullMarked
-package io.github.doriangrelu.ostore.api.s3.controller;
+package io.github.doriangrelu.ostore.domain.model.vo;
 
 import org.jspecify.annotations.NullMarked;

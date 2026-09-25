@@ -12,10 +12,10 @@ traversant bien écrit à une série de tests illisibles.
 
 | Niveau | Quand | Forme |
 |---|---|---|
-| **TI traversant** (`*IT`, failsafe) | Par défaut, pour chaque scénario métier | Application démarrée, vraie base (Testcontainers PostgreSQL/Oracle), vrai driver, appelée par HTTP comme un client réel (SDK AWS pour l'API S3, client du contrat pour l'API REST) |
+| **TI traversant** (`*IT`, failsafe) | Par défaut, pour chaque scénario métier | Application démarrée, vraie base (Testcontainers PostgreSQL/Oracle), vrai driver, appelée par HTTP comme un client réel (client construit sur le contrat) |
 | **Test de conformité** | Chaque driver de stockage | Kit commun de la SPI (ADR-0007), un seul jeu de tests pour tous les drivers |
 | **Test de migration** | Chaque SGBD | Migrations appliquées sur PostgreSQL et Oracle réels |
-| **Test unitaire** | **Seulement** pour une règle pure, dense et combinatoire | Ex. : validation des noms de bucket S3, machine à états des transactions, résolution de `Range`, ETag multipart |
+| **Test unitaire** | **Seulement** pour une règle pure, dense et combinatoire | Ex. : validation des noms de bucket, machine à états des transactions, résolution de `Range`, ETag multipart |
 | **Test d'architecture** | Permanent | ArchUnit |
 
 Règles d'écriture :

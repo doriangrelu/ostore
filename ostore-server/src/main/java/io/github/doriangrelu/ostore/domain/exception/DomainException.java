@@ -19,7 +19,7 @@ package io.github.doriangrelu.ostore.domain.exception;
  * Violation d'une règle métier.
  *
  * <p>Les adaptateurs entrants traduisent chaque sous-classe dans leur protocole (ProblemDetail pour
- * l'API REST, erreur XML pour l'API S3). Le domaine n'a aucune notion de code HTTP.
+ * l'API REST). Le domaine n'a aucune notion de code HTTP.
  */
 public abstract class DomainException extends RuntimeException {
 

@@ -2,8 +2,9 @@
 
 ## 1. Vision
 
-OStore expose une API **compatible S3** (utilisable avec les SDK AWS, `aws cli`, rclone…) et une
-**API REST** (JSON) qui ajoute la notion de **transaction** :
+OStore expose **une seule API JSON** (ADR-0014), décrite par le module contrat et par OpenAPI. Ses
+sémantiques sont inspirées de S3 (buckets, clés, ETag, `Range`, multipart), sans compatibilité
+protocolaire (ni XML, ni SigV4). Elle ajoute la notion de **transaction** :
 
 - un client dépose un ou plusieurs fichiers dans une transaction ouverte ;
 - les fichiers sont **en attente** (`PENDING`) tant que la transaction n'est pas validée ;
@@ -18,7 +19,7 @@ Chaque réponse d'écriture renvoie : **identifiant de ressource** (`resourceId`
 
 | Inclus | Exclu (v1) |
 |---|---|
-| Buckets : create, delete, head, list | Versioning S3, lifecycle, policies, ACL |
+| Buckets : create, delete, get, list | Versioning, lifecycle, policies, ACL |
 | Objets : put, get (+ Range), head, delete, list (V2), copy | — |
 | Multipart upload à l'initiative du client, désactivable (ADR-0010) | ListMultipartUploads, UploadPartCopy (v1.1) |
 | Métadonnées utilisateur `x-amz-meta-*` | Chiffrement serveur, réplication |
@@ -45,7 +46,7 @@ Deux modes d'usage :
 2. **Implicite** (fichier unitaire) : `PUT` avec `x-ostore-pending-ttl: PT15M` → la transaction est
    créée à la volée et son id renvoyé dans `x-ostore-transaction-id`.
 
-En-têtes de réponse ajoutés (compatibles SDK S3, ignorés par les clients standards) :
+En-têtes de réponse des opérations binaires (les opérations JSON les portent dans le corps) :
 `x-ostore-resource-id`, `x-ostore-transaction-id`, `x-ostore-object-status`.
 
 **Remplacement d'un objet existant dans une transaction** : chaque écriture crée une nouvelle
@@ -80,7 +81,6 @@ Packages de `ostore-server` (racine `io.github.doriangrelu.ostore`) :
 │   └── port/out/               #   interfaces vers l'infrastructure
 ├── api/                        # Adaptateurs entrants
 │   ├── rest/                   #   contrôleurs = implements des interfaces du contrat
-│   └── s3/                     #   protocole S3 (XML, erreurs, aws-chunked)
 └── infrastructure/             # Adaptateurs sortants + configuration Spring
     ├── persistence/            #   Spring Data JDBC
     ├── storage/                #   chargement des drivers, adaptation SPI → ports
@@ -147,18 +147,18 @@ Identifiants : **UUID v7** (triables dans le temps → index B-tree efficaces), 
 ## 5. Roadmap par tranches verticales
 
 En cohérence avec le trunk-based development (ADR-0012) et la stratégie de tests (ADR-0011), chaque
-jalon est une **tranche verticale** : migration PG + Oracle → domaine → cas d'usage → API REST et S3.
+jalon est une **tranche verticale** : migration PG + Oracle → domaine → cas d'usage → API REST.
 Chaque tranche est prouvée par des **TI traversants** et livrable sur `main`. Une tranche en cours
 reste derrière un feature flag.
 
 | Jalon | Tranche | TI traversants qui la prouvent |
 |---|---|---|
 | **M0 — Fondations** | Méthode, ADR, build, CI, qualité, skills | `./mvnw verify` vert, CI verte |
-| **M1 — Buckets** | Socle technique (Spring Web, Spring Data JDBC, Flyway, Testcontainers) + buckets de bout en bout | Créer par REST → lister par SDK AWS → supprimer ; sur PostgreSQL **et** Oracle |
+| **M1 — Buckets** | Socle technique (Spring Web, Spring Data JDBC, Flyway, Testcontainers) + buckets de bout en bout | Créer → lire → lister → supprimer, erreurs métier ; sur PostgreSQL **et** Oracle |
 | **M2 — Objets** | SPI + drivers FileSystem et S3 ; put/get/head/delete/list/copy ; streaming | Aller-retour d'un fichier de plusieurs Go à mémoire bornée ; même scénario sur chaque driver |
 | **M3 — Transactions** | open/commit/rollback/extend, visibilité, expiration, purge | Dépôt en attente → invisible → commit → visible ; dépôt → expiration → blob supprimé |
-| **M4 — Multipart** | Opérations multipart S3 (flag) | Upload multipart par `aws cli` / SDK → lecture complète et par `Range` |
-| **M5 — Exploitation** | Rendu SQL DBA, tablespaces/synonymes Oracle, authentification S3 (ADR-0008) | Migrations Oracle avec tablespaces et synonymes ; SQL rendu exécutable |
+| **M4 — Multipart** | Endpoints multipart JSON (flag, ADR-0010) | Upload multipart parallèle et repris → lecture complète et par `Range` |
+| **M5 — Exploitation** | Rendu SQL DBA, tablespaces/synonymes Oracle, authentification de l'API (ADR-0008) | Migrations Oracle avec tablespaces et synonymes ; SQL rendu exécutable |
 | **M6 — Release OSS** | CONTRIBUTING, image Docker, publication du contrat et des drivers | Tag `v0.1.0` |
 
 Le détail des tâches est dans [TASKS.md](TASKS.md).
@@ -167,8 +167,7 @@ Le détail des tâches est dans [TASKS.md](TASKS.md).
 
 | Risque | Mitigation |
 |---|---|
-| SDK AWS récents : `aws-chunked` + checksums CRC32 en trailer par défaut | Décodeur `aws-chunked` dédié, tests avec SDK réel dès M5 |
-| Authentification SigV4 attendue par les SDK | Décision reportée à M5 (ADR-0008) ; API S3 non exposable avant |
-| Clés S3 jusqu'à 1024 octets → limites de taille d'index (Oracle ~6,4 Ko, PG ~2,7 Ko) | `VARCHAR2(1024 CHAR)` OK en composite ; test explicite sur clés longues multi-octets |
+| API non authentifiée jusqu'à M5 | Non exposable hors développement avant ADR-0008 |
+| Clés d'objet jusqu'à 1024 octets → limites de taille d'index (Oracle ~6,4 Ko, PG ~2,7 Ko) | `VARCHAR2(1024 CHAR)` OK en composite ; test explicite sur clés longues multi-octets |
 | Divergence des scripts PG / Oracle | Tests de migration automatisés sur les 2 SGBD + même numérotation |
 | Streaming et virtual threads | Pas de `synchronized` long ni de buffer mémoire ; tests de charge légers en M6 |

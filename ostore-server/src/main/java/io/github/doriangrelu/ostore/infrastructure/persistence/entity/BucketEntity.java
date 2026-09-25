@@ -16,7 +16,7 @@
 package io.github.doriangrelu.ostore.infrastructure.persistence.entity;
 
 import io.github.doriangrelu.ostore.domain.model.Bucket;
-import io.github.doriangrelu.ostore.domain.model.BucketName;
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 import java.time.Instant;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;

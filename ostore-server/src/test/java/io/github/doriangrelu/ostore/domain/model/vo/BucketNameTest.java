@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.doriangrelu.ostore.domain.model;
+package io.github.doriangrelu.ostore.domain.model.vo;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,7 +22,7 @@ import io.github.doriangrelu.ostore.domain.exception.InvalidBucketNameException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** Règles de nommage S3 : règle pure et combinatoire, seul cas justifiant un test unitaire (ADR-0011). */
+/** Règles de nommage des buckets : règle pure et combinatoire, seul cas justifiant un test unitaire (ADR-0011). */
 class BucketNameTest {
 
     @ParameterizedTest
@@ -32,9 +32,9 @@ class BucketNameTest {
                 "my-bucket",
                 "invoices.2026",
                 "a1b2c3",
-                "sixty-three-characters-is-the-longest-name-accepted-by-s3-rules" // 63 caractères
+                "sixty-three-characters-is-the-longest-name-accepted-by-the-rule" // 63 caractères
             })
-    void should_accept_name_when_it_follows_s3_rules(String name) {
+    void should_accept_name_when_it_follows_naming_rules(String name) {
         assertThatCode(() -> new BucketName(name)).doesNotThrowAnyException();
     }
 
@@ -47,11 +47,9 @@ class BucketNameTest {
                 "-starts-with-dash", // doit commencer par une lettre ou un chiffre
                 "ends-with-dot.", // doit finir par une lettre ou un chiffre
                 "two..dots", // points consécutifs
-                "192.168.1.10", // format d'adresse IP
-                "xn--reserved-prefix", // préfixe réservé
-                "reserved-suffix-s3alias" // suffixe réservé
+                "192.168.1.10" // format d'adresse IP
             })
-    void should_reject_name_when_it_breaks_s3_rules(String name) {
+    void should_reject_name_when_it_breaks_naming_rules(String name) {
         assertThatThrownBy(() -> new BucketName(name)).isInstanceOf(InvalidBucketNameException.class);
     }
 

@@ -20,7 +20,7 @@ import io.github.doriangrelu.ostore.application.port.out.BucketRepository;
 import io.github.doriangrelu.ostore.domain.exception.BucketAlreadyExistsException;
 import io.github.doriangrelu.ostore.domain.exception.BucketNotFoundException;
 import io.github.doriangrelu.ostore.domain.model.Bucket;
-import io.github.doriangrelu.ostore.domain.model.BucketName;
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 import java.time.Clock;
 import java.util.List;
 

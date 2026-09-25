@@ -18,7 +18,7 @@ package io.github.doriangrelu.ostore.infrastructure.persistence.adapter;
 import io.github.doriangrelu.ostore.application.port.out.BucketRepository;
 import io.github.doriangrelu.ostore.domain.exception.BucketAlreadyExistsException;
 import io.github.doriangrelu.ostore.domain.model.Bucket;
-import io.github.doriangrelu.ostore.domain.model.BucketName;
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 import io.github.doriangrelu.ostore.infrastructure.persistence.entity.BucketEntity;
 import io.github.doriangrelu.ostore.infrastructure.persistence.repository.BucketEntityRepository;
 import java.util.List;

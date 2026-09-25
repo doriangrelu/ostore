@@ -17,7 +17,7 @@ package io.github.doriangrelu.ostore.application.port.out;
 
 import io.github.doriangrelu.ostore.domain.exception.BucketAlreadyExistsException;
 import io.github.doriangrelu.ostore.domain.model.Bucket;
-import io.github.doriangrelu.ostore.domain.model.BucketName;
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 import java.util.List;
 import java.util.Optional;
 

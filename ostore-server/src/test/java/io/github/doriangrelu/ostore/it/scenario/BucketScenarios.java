@@ -17,58 +17,50 @@ package io.github.doriangrelu.ostore.it.scenario;
 
 import static io.github.doriangrelu.ostore.it.support.IntegrationScenario.problemOf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.doriangrelu.ostore.contract.dto.BucketResponse;
 import io.github.doriangrelu.ostore.contract.dto.CreateBucketRequest;
 import io.github.doriangrelu.ostore.it.support.IntegrationScenario;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.services.s3.model.Bucket;
-import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException;
-import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 
-/** Scénarios « buckets » : l'API REST et l'API S3 partagent les mêmes buckets. */
+/** Scénarios « buckets » de bout en bout, via le client construit sur le contrat. */
 public interface BucketScenarios extends IntegrationScenario {
 
     @Test
-    default void should_share_bucket_lifecycle_between_rest_and_s3() {
+    default void should_create_list_and_delete_a_bucket() {
         var name = uniqueBucketName();
 
-        // Given : un bucket créé par l'API REST
+        // Given : un bucket créé
         var created = rest().create(new CreateBucketRequest(name));
         assertThat(created.id()).isNotNull();
         assertThat(created.name()).isEqualTo(name);
 
-        // Then : il est vu par un client S3 standard
-        assertThat(s3().listBuckets().buckets()).extracting(Bucket::name).contains(name);
-        s3().headBucket(request -> request.bucket(name));
+        // Then : il est lisible et listé
+        assertThat(rest().get(name)).isEqualTo(created);
         assertThat(rest().list().buckets()).extracting(BucketResponse::name).contains(name);
 
-        // When : il est supprimé par le client S3
-        s3().deleteBucket(request -> request.bucket(name));
+        // When : il est supprimé
+        rest().delete(name);
 
-        // Then : il a disparu des deux API
-        assertThat(problemOf(() -> rest().get(name)).code()).isEqualTo("BUCKET_NOT_FOUND");
-        assertThatThrownBy(() -> s3().headBucket(request -> request.bucket(name)))
-                .isInstanceOf(NoSuchBucketException.class);
+        // Then : il a disparu, et une seconde suppression est signalée
+        assertThat(rest().list().buckets()).extracting(BucketResponse::name).doesNotContain(name);
+        assertThat(problemOf(() -> rest().get(name)))
+                .extracting(Problem::status, Problem::code)
+                .containsExactly(404, "BUCKET_NOT_FOUND");
+        assertThat(problemOf(() -> rest().delete(name)).code()).isEqualTo("BUCKET_NOT_FOUND");
     }
 
     @Test
     default void should_reject_duplicate_and_invalid_bucket_names() {
         var name = uniqueBucketName();
+        rest().create(new CreateBucketRequest(name));
 
-        // Given : un bucket créé par le client S3, visible en REST
-        s3().createBucket(request -> request.bucket(name));
-        assertThat(rest().get(name).name()).isEqualTo(name);
-
-        // Then : le nom ne peut plus être pris, quelle que soit l'API
+        // Then : le nom ne peut plus être pris
         assertThat(problemOf(() -> rest().create(new CreateBucketRequest(name))))
                 .extracting(Problem::status, Problem::code)
                 .containsExactly(409, "BUCKET_ALREADY_EXISTS");
-        assertThatThrownBy(() -> s3().createBucket(request -> request.bucket(name)))
-                .isInstanceOf(BucketAlreadyOwnedByYouException.class);
 
-        // And : un nom hors règles S3 est refusé avec un code métier
+        // And : un nom hors règles de nommage est refusé avec un code métier
         assertThat(problemOf(() -> rest().create(new CreateBucketRequest("Invalid_Bucket"))))
                 .extracting(Problem::status, Problem::code)
                 .containsExactly(400, "INVALID_BUCKET_NAME");

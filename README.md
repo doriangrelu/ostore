@@ -4,14 +4,15 @@
 [![CodeQL](https://github.com/doriangrelu/ostore/actions/workflows/codeql.yml/badge.svg)](https://github.com/doriangrelu/ostore/actions/workflows/codeql.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-Stockage d'objets **compatible S3** avec **transactions** : un fichier peut être déposé en attente et
+Stockage d'objets avec une **API JSON** et des **transactions** : un fichier peut être déposé en attente et
 n'est conservé que si un autre service valide la transaction avant son expiration. Sinon il est
 entièrement supprimé.
 
 > ⚠️ Projet en cours de construction (jalon M0). Rien n'est encore utilisable.
 
 - Java 25 · Spring Boot 4 · virtual threads
-- Stockage : système de fichiers ou S3 (drivers extensibles)
+- API JSON unique décrite par OpenAPI, sémantiques inspirées de S3 (buckets, clés, ETag, Range, multipart)
+- Stockage : système de fichiers ou S3 en backend (drivers extensibles)
 - Métadonnées : PostgreSQL ou Oracle
 
 ## Construire

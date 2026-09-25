@@ -15,7 +15,7 @@
  */
 package io.github.doriangrelu.ostore.domain.exception;
 
-import io.github.doriangrelu.ostore.domain.model.BucketName;
+import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 
 /** Aucun bucket ne porte ce nom. */
 public final class BucketNotFoundException extends DomainException {
