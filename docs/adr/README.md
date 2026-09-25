@@ -19,3 +19,4 @@ supprimé : une décision remplacée passe en « Remplacé par ADR-XXXX ».
 | [0012](0012-trunk-based-development.md) | Trunk-based development | Accepté |
 | [0013](0013-http-routing.md) | Routage HTTP : S3 sous `/s3`, REST sous `/api/v1` | Remplacé par ADR-0014 |
 | [0014](0014-json-api-only.md) | Une seule API, en JSON : abandon de la compatibilité S3 | Accepté |
+| [0015](0015-object-api.md) | API des objets, flux binaires et organisation des chemins | Proposé |

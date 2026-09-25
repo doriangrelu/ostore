@@ -68,6 +68,9 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 18. **Dates en UTC** : `Instant` dans le code, précision à la microseconde (commune aux SGBD), stockées en
     `TIMESTAMP WITH TIME ZONE` à `+00:00` quel que soit le fuseau de la JVM (convertisseur `JdbcValue`,
     vérifié par `BucketOracleIT` avec une JVM de test en Europe/Paris).
+19. **Organisation du stockage** (ADR-0015 §7) : le chemin d'un blob est calculé par une stratégie
+    (`date` = `année/mois/jour/<uuid>` par défaut, `hashed`, `flat`, extensible), configurable par instance
+    (`ostore.storage.drivers.<id>.layout`) ou imposée par le driver, et **stocké en base** (`BLOB_PATH`).
 
 ## Skills projet (`.claude/skills/`)
 

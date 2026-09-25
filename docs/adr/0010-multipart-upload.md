@@ -47,5 +47,6 @@ ETag final = `md5(concaténation des md5 binaires des parties)-N`, convention re
 son backend comme optimisation, sans impact sur le contrat.
 
 ## Impact sur le plan
-Dès le jalon M2, le domaine distingue les deux formes de contenu d'un objet (sealed) :
-`SingleBlobContent` (par défaut) et `CompositeContent` (parties).
+Au jalon M4, le domaine distinguera les deux formes de contenu d'un objet (sealed) :
+`SingleBlobContent` (par défaut) et `CompositeContent` (parties). Non introduit en M2, faute d'usage :
+sans multipart, un seul cas existe et une hiérarchie serait du code mort.

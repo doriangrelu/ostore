@@ -30,6 +30,9 @@
 - Pas de `ThreadLocal` coûteux, pas de pools de threads maison pour l'I/O.
 - Préférer `ReentrantLock` à `synchronized` autour d'I/O longues (lisibilité, même si JEP 491 lève le pinning).
 - Streaming : `InputStream` → driver sans buffer intégral ; `transferTo` ; tailles contrôlées.
+- Corps binaire d'une requête : toujours `@RequestBody InputStreamResource` (jamais `Resource`, `byte[]` ni
+  `MultipartFile`, que Spring charge en mémoire). Réponse binaire : `InputStreamResource` + `Content-Length`
+  explicite. Tout nouvel endpoint binaire est couvert par un TI à mémoire bornée (`-Xmx512m`).
 
 ## Packages typés (directive utilisateur)
 Un package ne contient **qu'un seul type de classe**. Règles vérifiées par `PackageConventionTest` (ArchUnit).

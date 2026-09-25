@@ -31,10 +31,10 @@ Statuts : ⬜ À faire · 🟦 En cours · 🟨 À valider (utilisateur) · ✅ 
 
 | ID | Tâche | Statut | Critères de validation |
 |---|---|---|---|
-| T2.1 | SPI `StorageDriver` + kit de conformité (`test-jar`) | ⬜ | Kit exécuté par chaque driver |
-| T2.2 | Driver FileSystem (écriture atomique, sharding) | ⬜ | Kit vert |
-| T2.3 | Driver S3 (AWS SDK v2) | ⬜ | Kit vert sur MinIO |
-| T2.4 | Objets de bout en bout : migration, domaine (contenu sealed `SingleBlobContent` / `CompositeContent`), API JSON (put/get+Range/head/delete/list/copy, métadonnées `x-ostore-meta-*`) | ⬜ | — |
+| T2.1 | SPI `StorageDriver` + kit de conformité (`test-jar`) + stratégies de chemins (`date`/`hashed`/`flat`) | ✅ | Kit exécuté par chaque driver ; chemins sûrs testés |
+| T2.2 | Driver FileSystem (écriture atomique, chemin fourni par la stratégie) | ✅ | Kit vert |
+| T2.3 | Driver S3 (AWS SDK v2) | ✅ | Kit vert sur Adobe S3Mock (MinIO ne publie plus d'images) |
+| T2.4 | Objets de bout en bout : migration, domaine, API JSON (put/get+Range/métadonnées/delete/list/copy, `X-OStore-Meta`), purge asynchrone, chemins stockés en base | ✅ | — |
 | T2.5 | **TI traversants objets** | ⬜ | Aller-retour via le client du contrat ; fichier de plusieurs Go avec `-Xmx256m` ; lecture `Range` ; même scénario sur chaque driver |
 
 ## M3 — Transactions · M4 — Multipart · M5 — Exploitation · M6 — Release
