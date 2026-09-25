@@ -13,7 +13,7 @@ Statuts : ⬜ À faire · 🟦 En cours · 🟨 À valider (utilisateur) · ✅ 
 | T0.3 | POM parent + wrapper Maven, Spring Boot 4.1.1, modules | ✅ | `./mvnw verify` vert sur Java 25 (Temurin 25.0.3, Maven 3.9.16) |
 | T0.3b | Restructuration anti sur-découpage : `contract`, `drivers/{spi,filesystem,s3}`, `server` (packages) | ✅ | 7 modules Maven, `./mvnw verify` vert ; ADR-0002 révisé |
 | T0.4 | Qualité : Spotless (palantir + en-tête licence), Enforcer (Java 25, Maven 3.9), JaCoCo, ArchUnit | ✅ | Violation volontaire de format → build rouge ; dépendance Spring dans `domain` → build rouge (vérifié) |
-| T0.5 | CI GitHub Actions (build + tests + Testcontainers) | ⬜ | Pipeline vert |
+| T0.5 | CI GitHub Actions + qualimétrie : build/tests, rapports, couverture PR, SonarCloud (optionnel), CodeQL, dependency review, Dependabot | 🟦 | Pipelines CI et CodeQL verts sur `main` ; SonarCloud actif une fois `SONAR_TOKEN` configuré (action mainteneur) |
 | T0.6 | Skills projet `.claude/skills/` (voir §Skills) | ⬜ | Skills utilisables et documentés |
 
 ## M1 — Domaine & contrat

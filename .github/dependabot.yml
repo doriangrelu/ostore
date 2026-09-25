@@ -1,0 +1,26 @@
+# Mises à jour automatiques des dépendances (PR hebdomadaires, groupées)
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      spring-boot:
+        patterns: ['org.springframework.boot:*']
+      maven-plugins:
+        patterns: ['org.apache.maven.plugins:*', 'com.diffplug.spotless:*', 'org.jacoco:*', 'org.sonarsource.scanner.maven:*']
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ['*']

@@ -16,7 +16,8 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 | [docs/adr/](docs/adr/) | Décisions d'architecture (format MADR) |
 | [docs/conventions/code.md](docs/conventions/code.md) | Conventions Java / clean architecture |
 | [docs/conventions/database.md](docs/conventions/database.md) | Conventions SQL, migrations Postgres / Oracle |
-| [docs/conventions/workflow.md](docs/conventions/workflow.md) | Méthode de travail (tâches, validation) |
+| [docs/conventions/workflow.md](docs/conventions/workflow.md) | Méthode de travail (tâches, validation, commits) |
+| [docs/conventions/ci.md](docs/conventions/ci.md) | CI GitHub Actions, qualimétrie, activation SonarCloud |
 
 ## Directives (à respecter strictement)
 

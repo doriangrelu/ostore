@@ -1,0 +1,90 @@
+# Intégration continue : build, tests, qualimétrie (docs/conventions/ci.md)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, tests & quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write          # publication du rapport de tests
+      pull-requests: write   # commentaire de couverture sur les PR
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # vide si non configuré → étape Sonar ignorée
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0     # historique complet requis par Sonar (blame, nouveau code)
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # Format, licence, Enforcer, ArchUnit, tests unitaires et d'intégration, JaCoCo
+      - name: Build and verify
+        run: ./mvnw -B -ntp verify
+
+      - name: Publish test report
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6.5.0
+        with:
+          report_paths: '**/target/*-reports/TEST-*.xml'
+          require_tests: false
+
+      - name: Coverage comment
+        if: ${{ github.event_name == 'pull_request' && hashFiles('**/target/site/jacoco/jacoco.xml') != '' }}
+        uses: madrapps/jacoco-report@e51ce1f46f7f8b5331593f935e59cbaf44b84920 # v1.8.0
+        with:
+          paths: ${{ github.workspace }}/**/target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Couverture de code
+          update-comment: true
+
+      # Qualimétrie SonarCloud : exécutée seulement si le secret SONAR_TOKEN est configuré
+      # (absent sur les PR issues de forks, par sécurité).
+      - name: SonarCloud analysis
+        if: ${{ env.SONAR_TOKEN != '' }}
+        # Version du plugin et paramètres Sonar : POM parent (pluginManagement, propriétés sonar.*)
+        run: ./mvnw -B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+
+      - name: Upload reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reports
+          path: |
+            **/target/surefire-reports/
+            **/target/failsafe-reports/
+            **/target/site/jacoco/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  dependency-review:
+    name: Dependency review
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Bloque l'ajout de dépendances vulnérables ou sous licence incompatible avec Apache 2.0
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0-only, GPL-3.0-only, AGPL-3.0-only, AGPL-3.0-or-later
+          comment-summary-in-pr: on-failure
