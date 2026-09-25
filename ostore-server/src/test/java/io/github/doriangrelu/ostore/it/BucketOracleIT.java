@@ -15,7 +15,34 @@
  */
 package io.github.doriangrelu.ostore.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import io.github.doriangrelu.ostore.contract.dto.CreateBucketRequest;
 import io.github.doriangrelu.ostore.it.scenario.BucketScenarios;
 import io.github.doriangrelu.ostore.it.support.OracleIntegrationTest;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
-class BucketOracleIT extends OracleIntegrationTest implements BucketScenarios {}
+class BucketOracleIT extends OracleIntegrationTest implements BucketScenarios {
+
+    @Autowired
+    private JdbcClient jdbc;
+
+    /**
+     * Oracle conserve le décalage horaire reçu : les dates doivent y être écrites en UTC, quel que soit
+     * le fuseau de la JVM (forcé à Europe/Paris pour les TI, voir le POM parent).
+     */
+    @Test
+    void should_store_dates_in_utc() {
+        var name = uniqueBucketName();
+        rest().create(new CreateBucketRequest(name));
+
+        var storedOffset = jdbc.sql("SELECT TO_CHAR(CREATED_AT, 'TZH:TZM') FROM OST_BUCKET WHERE NAME = ?")
+                .param(name)
+                .query(String.class)
+                .single();
+
+        assertThat(storedOffset).isEqualTo("+00:00");
+    }
+}

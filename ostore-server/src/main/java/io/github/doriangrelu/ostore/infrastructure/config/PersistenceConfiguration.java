@@ -16,8 +16,11 @@
 package io.github.doriangrelu.ostore.infrastructure.config;
 
 import io.github.doriangrelu.ostore.infrastructure.persistence.converter.BytesToUuidConverter;
+import io.github.doriangrelu.ostore.infrastructure.persistence.converter.InstantToUtcOffsetDateTimeConverter;
+import io.github.doriangrelu.ostore.infrastructure.persistence.converter.OffsetDateTimeToInstantConverter;
 import io.github.doriangrelu.ostore.infrastructure.persistence.converter.UuidToBytesConverter;
 import io.github.doriangrelu.ostore.infrastructure.persistence.entity.BucketEntity;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -77,8 +80,11 @@ class PersistenceConfiguration extends AbstractJdbcConfiguration {
 
     @Override
     protected List<?> userConverters() {
-        return context.getBean(JdbcDialect.class) instanceof OracleDialect
-                ? List.of(UuidToBytesConverter.INSTANCE, BytesToUuidConverter.INSTANCE)
-                : List.of();
+        List<Object> converters = new ArrayList<>(
+                List.of(InstantToUtcOffsetDateTimeConverter.INSTANCE, OffsetDateTimeToInstantConverter.INSTANCE));
+        if (context.getBean(JdbcDialect.class) instanceof OracleDialect) {
+            converters.addAll(List.of(UuidToBytesConverter.INSTANCE, BytesToUuidConverter.INSTANCE));
+        }
+        return converters;
     }
 }

@@ -18,11 +18,17 @@
 |---|---|---|
 | Identifiant UUID v7 | `UUID` | `RAW(16)` |
 | Texte court | `VARCHAR(n)` | `VARCHAR2(n CHAR)` |
-| Clé objet S3 | `VARCHAR(1024)` | `VARCHAR2(1024 CHAR)` |
-| Horodatage | `TIMESTAMP WITH TIME ZONE` | `TIMESTAMP WITH TIME ZONE` |
+| Clé d'objet | `VARCHAR(1024)` | `VARCHAR2(1024 CHAR)` |
+| Horodatage (**UTC**, microseconde) | `TIMESTAMP WITH TIME ZONE` | `TIMESTAMP WITH TIME ZONE` |
 | Taille | `BIGINT` | `NUMBER(19)` |
 | Statut | `VARCHAR(16)` + `CHECK` | `VARCHAR2(16 CHAR)` + `CHECK` |
 | Version optimiste | `BIGINT` | `NUMBER(19)` |
+
+## Dates
+- Toujours en **UTC** : Java écrit un `OffsetDateTime` à `+00:00` avec le type SQL imposé
+  (`InstantToUtcOffsetDateTimeConverter`) ; le fuseau de la JVM n'a aucune influence.
+- Précision à la **microseconde**, commune à PostgreSQL et Oracle : le domaine tronque les `Instant`,
+  pour que la valeur renvoyée à l'écriture soit identique à celle relue.
 
 ## Séparation des instructions
 Une instruction DDL = un objet. Ordre des fichiers d'une migration :

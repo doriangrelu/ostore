@@ -1,6 +1,7 @@
 # CLAUDE.md — OStore
 
-Stockage d'objets **compatible S3**, open source (**Apache 2.0**), enrichi d'une mécanique de
+Stockage d'objets avec **une API JSON unique** (sémantiques inspirées de S3, sans compatibilité protocolaire, ADR-0014),
+open source (**Apache 2.0**), enrichi d'une mécanique de
 **transactions / réservations** : un fichier peut être déposé en état *temporaire* et n'est
 conservé que si un tiers (autre micro-service) valide la transaction avant son expiration.
 
@@ -44,8 +45,9 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
    - Indexer systématiquement (FK, colonnes de filtre, de tri, de purge).
 8. **Persistance** : Spring Data JDBC (ADR-0004), entités de persistance séparées du domaine.
 9. **Objets en attente** : invisibles sauf via `resourceId` ou en-tête `x-ostore-transaction-id` (ADR-0009).
-10. **Authentification S3** : décision reportée au jalon M5 (ADR-0008).
-    **Multipart S3** : en v1, **non systématique** : uniquement si le client l'initie, désactivable ;
+10. **API JSON uniquement** (ADR-0014) : pas de XML, pas de protocole S3 ni de SigV4 ; tout passe par le contrat.
+    **Authentification** : décision reportée au jalon M5 (ADR-0008).
+    **Multipart** : en v1, **non systématique** : uniquement si le client l'initie, désactivable ;
     un `PutObject` simple reste mono-blob (ADR-0010).
 11. **Code** : lisible, simple, factorisé, moderne (records, sealed, pattern matching, streams, lambdas, `Optional`).
 12. **Méthode** : travailler par tâches (`docs/TASKS.md`), chacune avec critères de validation ;
@@ -57,12 +59,15 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 15. **Trunk-based development** (ADR-0012) : `main` toujours verte, petits incréments intégrés
     au moins chaque jour, fonctionnalités incomplètes derrière un feature flag, jamais de branche longue.
 16. **Tests** (ADR-0011) : privilégier **peu de tests d'intégration traversants**, simples et lisibles
-    (application réelle + Testcontainers + vrai client HTTP/SDK). Tests unitaires **uniquement** pour
+    (application réelle + Testcontainers + client construit sur le contrat). Tests unitaires **uniquement** pour
     une règle pure et combinatoire. Pas de mock de nos propres classes, pas d'objectif de nombre de tests.
 17. **Packages typés** : un package = un seul type de classe (model, exception, service, controller,
     handler, mapper, entity, repository, adapter, converter, config, properties, dto…), jamais de mélange ;
     **pas de `record` pour les services** (isolation des ports). Détail : `docs/conventions/code.md`,
     vérifié par `PackageConventionTest`.
+18. **Dates en UTC** : `Instant` dans le code, précision à la microseconde (commune aux SGBD), stockées en
+    `TIMESTAMP WITH TIME ZONE` à `+00:00` quel que soit le fuseau de la JVM (convertisseur `JdbcValue`,
+    vérifié par `BucketOracleIT` avec une JVM de test en Europe/Paris).
 
 ## Skills projet (`.claude/skills/`)
 

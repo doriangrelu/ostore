@@ -18,7 +18,7 @@
     <packaging>pom</packaging>
 
     <name>OStore</name>
-    <description>S3-compatible object storage with transactional (reservation) uploads.</description>
+    <description>Object storage with a JSON API and transactional (reservation) uploads.</description>
     <url>https://github.com/doriangrelu/ostore</url>
     <inceptionYear>2026</inceptionYear>
 
@@ -233,6 +233,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- Fuseau volontairement ≠ UTC : prouve que les dates sont stockées en UTC
+                         quel que soit le fuseau de la JVM (la CI tourne en UTC). -->
+                    <argLine>@{argLine} -Duser.timezone=Europe/Paris</argLine>
+                </configuration>
             </plugin>
 
             <!-- Couverture de tests : rapport par module (seuils ajoutés au jalon M1) -->
