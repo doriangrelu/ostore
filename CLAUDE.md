@@ -54,6 +54,22 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 13. **Documenter** tout choix structurant dans un ADR, toute bonne pratique dans `docs/conventions/`.
 14. **Commits** : [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/), en anglais
     (`<type>(<scope>)!: <description>`), détail dans [workflow.md](docs/conventions/workflow.md).
+15. **Trunk-based development** (ADR-0012) : `main` toujours verte, petits incréments intégrés
+    au moins chaque jour, fonctionnalités incomplètes derrière un feature flag, jamais de branche longue.
+16. **Tests** (ADR-0011) : privilégier **peu de tests d'intégration traversants**, simples et lisibles
+    (application réelle + Testcontainers + vrai client HTTP/SDK). Tests unitaires **uniquement** pour
+    une règle pure et combinatoire. Pas de mock de nos propres classes, pas d'objectif de nombre de tests.
+
+## Skills projet (`.claude/skills/`)
+
+| Skill | Quand l'utiliser |
+|---|---|
+| `task-workflow` | Démarrer / clôturer une tâche, commit et push en trunk-based |
+| `integration-test` | Écrire un TI traversant lisible (stratégie de tests par défaut) |
+| `db-migration` | Toute évolution de schéma, en parallèle PostgreSQL + Oracle |
+| `new-adr` | Tout choix structurant ou option tranchée |
+| `add-directive` | Toute consigne durable de l'utilisateur |
+| `new-storage-driver` | Ajouter un backend de stockage |
 
 ## Commandes
 
