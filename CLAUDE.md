@@ -59,6 +59,10 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 16. **Tests** (ADR-0011) : privilégier **peu de tests d'intégration traversants**, simples et lisibles
     (application réelle + Testcontainers + vrai client HTTP/SDK). Tests unitaires **uniquement** pour
     une règle pure et combinatoire. Pas de mock de nos propres classes, pas d'objectif de nombre de tests.
+17. **Packages typés** : un package = un seul type de classe (model, exception, service, controller,
+    handler, mapper, entity, repository, adapter, converter, config, properties, dto…), jamais de mélange ;
+    **pas de `record` pour les services** (isolation des ports). Détail : `docs/conventions/code.md`,
+    vérifié par `PackageConventionTest`.
 
 ## Skills projet (`.claude/skills/`)
 

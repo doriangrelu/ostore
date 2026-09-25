@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * Contrat HTTP public d'OStore : interfaces de ressources et DTO validés, source de la spécification OpenAPI.
  */

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * Adaptateurs sortants et configuration technique (Spring, base de données, drivers, jobs).
  */

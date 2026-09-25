@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * Ports sortants : interfaces implémentées par l'infrastructure (persistance, stockage, horloge).
  */

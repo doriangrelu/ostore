@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * Chargement des drivers de stockage et adaptation de la SPI aux ports sortants.
  */

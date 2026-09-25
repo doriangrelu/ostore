@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * Adaptateurs entrants HTTP : traduction du protocole et délégation aux cas d'usage, sans logique métier.
  */

@@ -15,9 +15,9 @@
  */
 package io.github.doriangrelu.ostore.infrastructure.config;
 
-import io.github.doriangrelu.ostore.application.BucketService;
 import io.github.doriangrelu.ostore.application.port.in.BucketUseCases;
 import io.github.doriangrelu.ostore.application.port.out.BucketRepository;
+import io.github.doriangrelu.ostore.application.service.BucketService;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

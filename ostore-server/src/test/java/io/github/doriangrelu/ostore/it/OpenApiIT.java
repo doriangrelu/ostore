@@ -17,6 +17,7 @@ package io.github.doriangrelu.ostore.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.doriangrelu.ostore.it.support.PostgresIntegrationTest;
 import org.junit.jupiter.api.Test;
 
 /** La spécification OpenAPI est générée depuis le contrat et ne décrit que l'API REST (ADR-0003). */

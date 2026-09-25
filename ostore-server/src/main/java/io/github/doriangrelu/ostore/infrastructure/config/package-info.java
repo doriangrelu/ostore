@@ -15,7 +15,7 @@
  */
 
 /**
- * Configuration Spring transverse : câblage des cas d'usage et beans techniques partagés.
+ * Classes {@code @Configuration} : câblage des cas d'usage, persistance, migrations.
  */
 @NullMarked
 package io.github.doriangrelu.ostore.infrastructure.config;

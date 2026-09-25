@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * SPI des drivers de stockage physique : contrat minimal à implémenter par tout nouveau support.
  */

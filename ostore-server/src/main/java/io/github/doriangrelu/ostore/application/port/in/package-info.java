@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * Ports entrants : interfaces des cas d'usage appelées par les adaptateurs API.
  */

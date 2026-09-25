@@ -31,6 +31,25 @@
 - Préférer `ReentrantLock` à `synchronized` autour d'I/O longues (lisibilité, même si JEP 491 lève le pinning).
 - Streaming : `InputStream` → driver sans buffer intégral ; `transferTo` ; tailles contrôlées.
 
+## Packages typés (directive utilisateur)
+Un package ne contient **qu'un seul type de classe**. Règles vérifiées par `PackageConventionTest` (ArchUnit).
+
+| Package | Contenu |
+|---|---|
+| `domain.model` | Agrégats et value objects (records immuables) |
+| `domain.exception` | Exceptions métier (`DomainException` et filles) |
+| `domain.util` | Utilitaires purs (identifiants…) |
+| `application.port.in` / `application.port.out` | Ports entrants / sortants |
+| `application.service` | Services applicatifs (**classes, jamais de records**, champs `private final`) |
+| `api.<protocole>.controller` / `.handler` / `.mapper` | Contrôleurs / traduction d'erreurs / conversion DTO |
+| `infrastructure.config` | Classes `@Configuration` |
+| `infrastructure.properties` | `@ConfigurationProperties` |
+| `infrastructure.persistence.entity` / `.repository` / `.adapter` / `.converter` | Entités / repositories Spring Data / adaptateurs des ports / convertisseurs |
+| `contract.api` / `.dto` / `.error` / `.constant` | Interfaces REST / DTO / codes d'erreur / constantes |
+
+Pourquoi pas de `record` pour un service : ses composants sont exposés par des accesseurs publics ;
+un cast vers la classe concrète donnerait accès aux ports de sortie et casserait l'isolation.
+
 ## Clean architecture
 - Domaine : aucun import `org.springframework`, `jakarta.persistence`, `software.amazon`.
 - **Un port entrant par agrégat** (`BucketUseCases`), implémenté par un service de `application`

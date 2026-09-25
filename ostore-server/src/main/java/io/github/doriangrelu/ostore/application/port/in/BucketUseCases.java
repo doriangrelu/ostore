@@ -15,10 +15,10 @@
  */
 package io.github.doriangrelu.ostore.application.port.in;
 
-import io.github.doriangrelu.ostore.domain.bucket.Bucket;
-import io.github.doriangrelu.ostore.domain.bucket.BucketAlreadyExistsException;
-import io.github.doriangrelu.ostore.domain.bucket.BucketName;
-import io.github.doriangrelu.ostore.domain.bucket.BucketNotFoundException;
+import io.github.doriangrelu.ostore.domain.exception.BucketAlreadyExistsException;
+import io.github.doriangrelu.ostore.domain.exception.BucketNotFoundException;
+import io.github.doriangrelu.ostore.domain.model.Bucket;
+import io.github.doriangrelu.ostore.domain.model.BucketName;
 import java.util.List;
 
 /** Cas d'usage des buckets, appelés par les API REST et S3. */

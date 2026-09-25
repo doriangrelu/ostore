@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * Cas d'usage. Dépend uniquement du domaine et de la SPI des drivers.
  */
