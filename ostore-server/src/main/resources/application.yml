@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: ostore
+  threads:
+    virtual:
+      # Directive projet : toutes les requêtes et tâches planifiées s'exécutent sur des virtual threads.
+      enabled: true

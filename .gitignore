@@ -1,0 +1,23 @@
+# Build Maven
+target/
+!.mvn/wrapper/maven-wrapper.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Données locales (driver filesystem, logs)
+data/
+*.log
+
+# Claude Code : paramètres personnels
+.claude/settings.local.json
