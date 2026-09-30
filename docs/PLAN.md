@@ -157,9 +157,11 @@ reste derrière un feature flag.
 | **M1 — Buckets** | Socle technique (Spring Web, Spring Data JDBC, Flyway, Testcontainers) + buckets de bout en bout | Créer → lire → lister → supprimer, erreurs métier ; sur PostgreSQL **et** Oracle |
 | **M2 — Objets** | SPI + drivers FileSystem et S3 ; put/get/head/delete/list/copy ; streaming | Aller-retour d'un fichier de plusieurs Go à mémoire bornée ; même scénario sur chaque driver |
 | **M3 — Transactions** | open/commit/rollback/extend, visibilité, expiration, purge | Dépôt en attente → invisible → commit → visible ; dépôt → expiration → blob supprimé |
-| **M4 — Multipart** | Endpoints multipart JSON (flag, ADR-0010) | Upload multipart parallèle et repris → lecture complète et par `Range` |
-| **M5 — Exploitation** | Rendu SQL DBA, tablespaces/synonymes Oracle, authentification de l'API (ADR-0008) | Migrations Oracle avec tablespaces et synonymes ; SQL rendu exécutable |
-| **M6 — Release OSS** | CONTRIBUTING, image Docker, publication du contrat et des drivers | Tag `v0.1.0` |
+| **M4 — Console** | Console d'administration Vue 3 désactivable (ADR-0017) : buckets, objets, transactions ; liste des transactions et statistiques de bucket dans le contrat | Console servie si activée, `404` sinon ; liste des transactions filtrée ; spécification OpenAPI à jour |
+| **M5 — Sécurité** | Authentification de l'API **et** de la console (ADR-0008) | Appels non authentifiés refusés ; console accessible après connexion |
+| **M6 — Multipart** | Endpoints multipart JSON (flag, ADR-0010) | Upload multipart parallèle et repris → lecture complète et par `Range` |
+| **M7 — Exploitation** | Rendu SQL DBA, tablespaces/synonymes Oracle | Migrations Oracle avec tablespaces et synonymes ; SQL rendu exécutable |
+| **M8 — Release OSS** | CONTRIBUTING, image Docker, publication du contrat et des drivers | Tag `v0.1.0` |
 
 Le détail des tâches est dans [TASKS.md](TASKS.md).
 
@@ -167,7 +169,7 @@ Le détail des tâches est dans [TASKS.md](TASKS.md).
 
 | Risque | Mitigation |
 |---|---|
-| API non authentifiée jusqu'à M5 | Non exposable hors développement avant ADR-0008 |
+| API et console non authentifiées jusqu'à M5 | Non exposables hors développement avant ADR-0008 ; console désactivée par défaut (ADR-0017) |
 | Clés d'objet jusqu'à 1024 octets → limites de taille d'index (Oracle ~6,4 Ko, PG ~2,7 Ko) | `VARCHAR2(1024 CHAR)` OK en composite ; test explicite sur clés longues multi-octets |
 | Divergence des scripts PG / Oracle | Tests de migration automatisés sur les 2 SGBD + même numérotation |
 | Streaming et virtual threads | Pas de `synchronized` long ni de buffer mémoire ; tests de charge légers en M6 |

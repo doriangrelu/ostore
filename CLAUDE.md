@@ -29,7 +29,7 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 3. **Clean architecture** : le domaine ne dépend d'aucun framework. Les dépendances pointent vers le domaine.
 4. **Multi-module sans sur-découpage** (ADR-0002) : un module n'existe que s'il est publié ou
    remplaçable séparément → `ostore-contract`, `ostore-drivers/` (SPI + un sous-module par driver),
-   `ostore-server` (tout le backend, couches = **packages**, protégées par ArchUnit).
+   `ostore-console` (console retirable), `ostore-server` (tout le backend, couches = **packages**, protégées par ArchUnit).
    Ne jamais créer de module pour une couche interne. Le module `ostore-contract` (interfaces de ressources + DTO annotés et validés)
    publiable seul (ADR-0003) :
    - annotations **Spring MVC** sur les interfaces → utilisables par Spring Cloud OpenFeign,
@@ -47,7 +47,7 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 9. **Objets désignés par leur identifiant** (ADR-0015) : `/api/v1/objects/{id}` (UUID v7), jamais par un chemin ;
    le nom est libre, optionnel et non unique. Objets en attente absents des listes, lisibles par leur id (ADR-0009).
 10. **API JSON uniquement** (ADR-0014) : pas de XML, pas de protocole S3 ni de SigV4 ; tout passe par le contrat.
-    **Authentification** : décision reportée au jalon M5 (ADR-0008).
+    **Authentification** : décision reportée au jalon M5 « Sécurité » (ADR-0008).
     **Multipart** : en v1, **non systématique** : uniquement si le client l'initie, désactivable ;
     un `PutObject` simple reste mono-blob (ADR-0010).
 11. **Code** : lisible, simple, factorisé, moderne (records, sealed, pattern matching, streams, lambdas, `Optional`).
@@ -75,6 +75,8 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 20. **Transactions** (ADR-0016) : création, copie **et** remplacement acceptent `X-OStore-Transaction-Id`
     (rejoindre) ou `X-OStore-Pending-Ttl` (transaction implicite) ; commit/rollback idempotents ; TTL 15 min par
     défaut, 24 h max ; toute écriture transactionnelle verrouille la transaction (`FOR UPDATE`) via le port `UnitOfWork`.
+21. **Console d'administration** (ADR-0017) : SPA Vue 3 + Vite dans le module `ostore-console`, cliente de la seule
+    API publique (client TypeScript généré depuis l'OpenAPI), désactivable (`ostore.console.enabled`, `false` par défaut).
 
 ## Skills projet (`.claude/skills/`)
 

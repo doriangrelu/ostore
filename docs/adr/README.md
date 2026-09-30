@@ -21,3 +21,4 @@ supprimé : une décision remplacée passe en « Remplacé par ADR-XXXX ».
 | [0014](0014-json-api-only.md) | Une seule API, en JSON : abandon de la compatibilité S3 | Accepté |
 | [0015](0015-object-api.md) | API des objets (adressage par identifiant), flux binaires et chemins | Accepté |
 | [0016](0016-transaction-api.md) | API des transactions et écritures transactionnelles (création, copie, remplacement) | Accepté |
+| [0017](0017-admin-console.md) | Console d'administration Vue 3, cliente de l'API publique, désactivable | Proposé |
