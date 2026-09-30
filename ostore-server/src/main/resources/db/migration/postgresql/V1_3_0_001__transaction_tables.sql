@@ -1,0 +1,21 @@
+-- Transactions : un dépôt en attente n'est conservé que si la transaction est validée avant son échéance.
+CREATE TABLE OST_TRANSACTION (
+    ID                UUID                     NOT NULL,
+    STATUS            VARCHAR(16)              NOT NULL,
+    CLIENT_REFERENCE  VARCHAR(255),
+    CREATED_AT        TIMESTAMP WITH TIME ZONE NOT NULL,
+    EXPIRES_AT        TIMESTAMP WITH TIME ZONE NOT NULL,
+    CLOSED_AT         TIMESTAMP WITH TIME ZONE,
+    VERSION           BIGINT                   NOT NULL
+);
+
+-- Les objets existants sont validés.
+ALTER TABLE OST_OBJECT ADD COLUMN STATUS VARCHAR(16);
+
+UPDATE OST_OBJECT SET STATUS = 'ACTIVE';
+
+ALTER TABLE OST_OBJECT ALTER COLUMN STATUS SET NOT NULL;
+
+ALTER TABLE OST_OBJECT ADD COLUMN TRANSACTION_ID UUID;
+
+ALTER TABLE OST_OBJECT ADD COLUMN REPLACES_OBJECT_ID UUID;

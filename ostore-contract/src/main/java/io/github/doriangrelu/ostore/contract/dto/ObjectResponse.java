@@ -29,6 +29,8 @@ import org.jspecify.annotations.Nullable;
  * @param size taille en octets
  * @param etag empreinte MD5 hexadécimale du contenu
  * @param contentType type MIME
+ * @param status {@code PENDING} tant que la transaction n'est pas validée, sinon {@code ACTIVE}
+ * @param transactionId transaction de l'écriture, s'il y en a une
  * @param createdAt date de création (UTC)
  * @param updatedAt date du dernier dépôt de contenu (UTC)
  * @param metadata métadonnées utilisateur
@@ -48,6 +50,12 @@ public record ObjectResponse(
 
         @Schema(description = "MIME type", example = "application/pdf")
         String contentType,
+
+        @Schema(description = "PENDING until the transaction is committed, then ACTIVE")
+        ObjectStatus status,
+
+        @Schema(description = "Transaction of the write, when there is one") @Nullable
+        UUID transactionId,
 
         @Schema(description = "Creation date (UTC)") Instant createdAt,
 

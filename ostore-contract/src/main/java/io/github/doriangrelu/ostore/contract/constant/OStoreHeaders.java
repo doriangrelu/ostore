@@ -28,5 +28,17 @@ public final class OStoreHeaders {
     /** Identifiant de ressource de l'objet, renvoyé à la lecture du contenu. */
     public static final String RESOURCE_ID = "X-OStore-Resource-Id";
 
+    /**
+     * Transaction : en écriture, rejoint cette transaction ouverte ; en lecture, désigne la version en attente
+     * de cette transaction (ADR-0016).
+     */
+    public static final String TRANSACTION_ID = "X-OStore-Transaction-Id";
+
+    /**
+     * Durée de vie ISO-8601 (ex. {@code PT15M}) d'une transaction créée pour cette seule écriture (mode
+     * implicite). Incompatible avec {@link #TRANSACTION_ID}.
+     */
+    public static final String PENDING_TTL = "X-OStore-Pending-Ttl";
+
     private OStoreHeaders() {}
 }

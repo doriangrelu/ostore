@@ -22,14 +22,16 @@ import org.jspecify.annotations.Nullable;
 /**
  * Page d'objets, par ordre de création.
  *
- * @param bucket nom du bucket
+ * @param bucket nom du bucket listé, {@code null} pour les objets d'une transaction (plusieurs buckets possibles)
  * @param namePrefix filtre de nom demandé, {@code null} = tous les objets
  * @param objects objets de la page
  * @param nextContinuationToken jeton à renvoyer pour la page suivante, {@code null} sur la dernière page
  */
 @Schema(description = "Page of objects, in creation order")
 public record ObjectListResponse(
+        @Schema(description = "Listed bucket, absent for the objects of a transaction") @Nullable
         String bucket,
+
         @Nullable String namePrefix,
         List<ObjectSummaryResponse> objects,
 

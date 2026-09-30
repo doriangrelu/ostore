@@ -22,13 +22,15 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Remplacement du contenu d'un objet existant ; son identifiant ne change pas.
+ * Remplacement du contenu d'un objet existant ; son identifiant ne change pas. En mode transactionnel, la
+ * nouvelle version reste en attente jusqu'au commit (ADR-0016).
  *
  * @param id objet à remplacer
  * @param name nouveau nom, {@code null} = nom conservé
  * @param contentLength taille annoncée, vérifiée à l'octet près
  * @param contentType type MIME, {@code null} = {@code application/octet-stream}
  * @param metadata nouvelles métadonnées (remplacent les précédentes)
+ * @param transaction mode transactionnel de l'écriture
  * @param content contenu, lu en flux
  */
 public record ReplaceObjectCommand(
@@ -37,4 +39,5 @@ public record ReplaceObjectCommand(
         long contentLength,
         @Nullable String contentType,
         ObjectMetadata metadata,
+        TransactionMode transaction,
         InputStream content) {}

@@ -28,6 +28,13 @@ ostore:
         type: filesystem
         properties:
           root: ./data/blobs
+  transactions:
+    # Durées de vie (ADR-0016) : défaut et maximum (prolongations comprises), format ISO-8601.
+    default-ttl: PT15M
+    max-ttl: P1D
+    # Job d'expiration des transactions échues (sûr en cluster).
+    expiration-interval: PT30S
+    expiration-batch-size: 100
   purge:
     # Suppression asynchrone des blobs remplacés ou supprimés (ADR-0006).
     interval: PT30S

@@ -36,5 +36,23 @@ public final class ApiPaths {
     /** Copie d'un objet. */
     public static final String OBJECT_COPY = OBJECT + "/copy";
 
+    /** Collection des transactions. */
+    public static final String TRANSACTIONS = API_V1 + "/transactions";
+
+    /** Une transaction, désignée par son identifiant ({@code {id}}). */
+    public static final String TRANSACTION = TRANSACTIONS + "/{id}";
+
+    /** Objets d'une transaction. */
+    public static final String TRANSACTION_OBJECTS = TRANSACTION + "/objects";
+
+    /** Validation d'une transaction. */
+    public static final String TRANSACTION_COMMIT = TRANSACTION + "/commit";
+
+    /** Annulation d'une transaction. */
+    public static final String TRANSACTION_ROLLBACK = TRANSACTION + "/rollback";
+
+    /** Prolongation d'une transaction. */
+    public static final String TRANSACTION_EXTEND = TRANSACTION + "/extend";
+
     private ApiPaths() {}
 }

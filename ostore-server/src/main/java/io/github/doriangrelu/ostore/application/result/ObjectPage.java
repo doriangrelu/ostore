@@ -24,11 +24,20 @@ import java.util.UUID;
  * Page d'une liste d'objets.
  *
  * @param objects objets de la page, par ordre de création (identifiants UUID v7)
- * @param lastId identifiant du dernier objet s'il reste d'autres pages (point de reprise), sinon vide
+ * @param resumeAfter position de reprise s'il reste d'autres pages, sinon vide
  */
-public record ObjectPage(List<ObjectSummary> objects, Optional<UUID> lastId) {
+public record ObjectPage(List<ObjectSummary> objects, Optional<UUID> resumeAfter) {
 
     public ObjectPage {
         objects = List.copyOf(objects);
+    }
+
+    /** Page construite à partir d'un élément de plus que la taille demandée (indique s'il en reste). */
+    public static ObjectPage of(List<ObjectSummary> found, int pageSize) {
+        if (found.size() <= pageSize) {
+            return new ObjectPage(found, Optional.empty());
+        }
+        var page = found.subList(0, pageSize);
+        return new ObjectPage(page, Optional.of(page.getLast().rowId()));
     }
 }

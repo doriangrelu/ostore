@@ -48,7 +48,8 @@ import tools.jackson.databind.json.JsonMapper;
  * Client REST de test des objets, qui implémente l'interface du contrat comme le ferait un client tiers.
  *
  * <p>Les contenus sont envoyés et reçus <b>en flux</b> (client HTTP du JDK, taille fixée par
- * {@code Content-Length}) : il sert à prouver qu'OStore traite des fichiers de plusieurs Go à mémoire bornée.
+ * {@code Content-Length}) : il sert à prouver qu'OStore traite des fichiers de plusieurs Go à mémoire bornée. Des
+ * raccourcis (contenu en mémoire, sans transaction) gardent les scénarios lisibles.
  */
 public final class ObjectRestClient implements ObjectApi {
 
@@ -69,6 +70,8 @@ public final class ObjectRestClient implements ObjectApi {
             long contentLength,
             @Nullable String contentType,
             @Nullable List<String> metadata,
+            @Nullable UUID transactionId,
+            @Nullable String pendingTtl,
             InputStreamResource content) {
         return http.post()
                 .uri(builder -> {
@@ -81,17 +84,39 @@ public final class ObjectRestClient implements ObjectApi {
                     }
                     return builder.build(variables);
                 })
-                .headers(headers -> binaryHeaders(headers, contentLength, contentType, metadata))
+                .headers(headers ->
+                        writeHeaders(headers, contentLength, contentType, metadata, transactionId, pendingTtl))
                 .accept(MediaType.APPLICATION_JSON)
                 .body(content)
                 .retrieve()
                 .body(ObjectResponse.class);
     }
 
-    /** Raccourci : dépôt d'un contenu en mémoire (petits fichiers de test). */
+    /** Raccourci : dépôt en flux, hors transaction. */
+    public ObjectResponse create(
+            String bucket,
+            @Nullable String name,
+            long contentLength,
+            @Nullable String contentType,
+            @Nullable List<String> metadata,
+            InputStreamResource content) {
+        return create(bucket, name, contentLength, contentType, metadata, null, null, content);
+    }
+
+    /** Raccourci : dépôt d'un contenu en mémoire, hors transaction. */
     public ObjectResponse create(
             String bucket, @Nullable String name, String contentType, byte[] content, String... metadata) {
-        return create(bucket, name, content.length, contentType, List.of(metadata), inMemory(content));
+        return create(bucket, name, content.length, contentType, List.of(metadata), null, null, inMemory(content));
+    }
+
+    /** Raccourci : dépôt d'un contenu en mémoire dans une transaction existante. */
+    public ObjectResponse createIn(UUID transactionId, String bucket, @Nullable String name, byte[] content) {
+        return create(bucket, name, content.length, "text/plain", null, transactionId, null, inMemory(content));
+    }
+
+    /** Raccourci : dépôt d'un contenu en mémoire dans une transaction créée pour lui (mode implicite). */
+    public ObjectResponse createPending(String bucket, @Nullable String name, byte[] content, String ttl) {
+        return create(bucket, name, content.length, "text/plain", null, null, ttl, inMemory(content));
     }
 
     @Override
@@ -117,18 +142,28 @@ public final class ObjectRestClient implements ObjectApi {
     }
 
     @Override
+    public ObjectResponse metadata(UUID id, @Nullable UUID transactionId) {
+        return http.get()
+                .uri(ApiPaths.OBJECT, id)
+                .headers(headers -> transactionHeader(headers, transactionId))
+                .retrieve()
+                .body(ObjectResponse.class);
+    }
+
+    /** Raccourci : métadonnées de la version validée. */
     public ObjectResponse metadata(UUID id) {
-        return http.get().uri(ApiPaths.OBJECT, id).retrieve().body(ObjectResponse.class);
+        return metadata(id, null);
     }
 
     @Override
-    public ResponseEntity<Resource> content(UUID id, @Nullable String range) {
+    public ResponseEntity<Resource> content(UUID id, @Nullable String range, @Nullable UUID transactionId) {
         return http.get()
                 .uri(ApiPaths.OBJECT_CONTENT, id)
                 .headers(headers -> {
                     if (range != null) {
                         headers.set(HttpHeaders.RANGE, range);
                     }
+                    transactionHeader(headers, transactionId);
                 })
                 // Flux laissé ouvert (close = false) : l'appelant lit le contenu puis le ferme.
                 .exchange(
@@ -143,9 +178,19 @@ public final class ObjectRestClient implements ObjectApi {
                         false);
     }
 
-    /** Raccourci : contenu complet lu en mémoire (petits fichiers de test). */
+    /** Raccourci : contenu de la version validée. */
+    public ResponseEntity<Resource> content(UUID id, @Nullable String range) {
+        return content(id, range, null);
+    }
+
+    /** Raccourci : contenu complet de la version validée, lu en mémoire. */
     public byte[] read(UUID id) {
-        try (var body = content(id, null).getBody().getInputStream()) {
+        return read(id, null);
+    }
+
+    /** Raccourci : contenu complet, lu en mémoire ; avec une transaction, sa version en attente. */
+    public byte[] read(UUID id, @Nullable UUID transactionId) {
+        try (var body = content(id, null, transactionId).getBody().getInputStream()) {
             return body.readAllBytes();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -159,29 +204,49 @@ public final class ObjectRestClient implements ObjectApi {
             long contentLength,
             @Nullable String contentType,
             @Nullable List<String> metadata,
+            @Nullable UUID transactionId,
+            @Nullable String pendingTtl,
             InputStreamResource content) {
         return http.put()
                 .uri(ApiPaths.OBJECT_CONTENT, id)
-                .headers(headers -> binaryHeaders(headers, contentLength, contentType, metadata))
+                .headers(headers ->
+                        writeHeaders(headers, contentLength, contentType, metadata, transactionId, pendingTtl))
                 .accept(MediaType.APPLICATION_JSON)
                 .body(content)
                 .retrieve()
                 .body(ObjectResponse.class);
     }
 
-    /** Raccourci : remplacement par un contenu en mémoire (petits fichiers de test). */
+    /** Raccourci : remplacement par un contenu en mémoire, hors transaction. */
     public ObjectResponse replace(UUID id, String contentType, byte[] content, String... metadata) {
-        return replace(id, null, content.length, contentType, List.of(metadata), inMemory(content));
+        return replace(id, null, content.length, contentType, List.of(metadata), null, null, inMemory(content));
+    }
+
+    /** Raccourci : remplacement en attente dans une transaction existante. */
+    public ObjectResponse replaceIn(UUID transactionId, UUID id, byte[] content) {
+        return replace(id, null, content.length, "text/plain", null, transactionId, null, inMemory(content));
     }
 
     @Override
-    public ObjectResponse copy(UUID id, CopyObjectRequest request) {
+    public ObjectResponse copy(
+            UUID id, @Nullable UUID transactionId, @Nullable String pendingTtl, CopyObjectRequest request) {
         return http.post()
                 .uri(ApiPaths.OBJECT_COPY, id)
+                .headers(headers -> {
+                    transactionHeader(headers, transactionId);
+                    if (pendingTtl != null) {
+                        headers.set(OStoreHeaders.PENDING_TTL, pendingTtl);
+                    }
+                })
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
                 .body(ObjectResponse.class);
+    }
+
+    /** Raccourci : copie hors transaction. */
+    public ObjectResponse copy(UUID id, CopyObjectRequest request) {
+        return copy(id, null, null, request);
     }
 
     @Override
@@ -189,13 +254,28 @@ public final class ObjectRestClient implements ObjectApi {
         http.delete().uri(ApiPaths.OBJECT, id).retrieve().toBodilessEntity();
     }
 
-    private static void binaryHeaders(
-            HttpHeaders headers, long contentLength, @Nullable String contentType, @Nullable List<String> metadata) {
+    private static void writeHeaders(
+            HttpHeaders headers,
+            long contentLength,
+            @Nullable String contentType,
+            @Nullable List<String> metadata,
+            @Nullable UUID transactionId,
+            @Nullable String pendingTtl) {
         headers.setContentLength(contentLength);
         headers.set(
                 HttpHeaders.CONTENT_TYPE, contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM_VALUE);
         if (metadata != null && !metadata.isEmpty()) {
             headers.put(OStoreHeaders.META, metadata);
+        }
+        transactionHeader(headers, transactionId);
+        if (pendingTtl != null) {
+            headers.set(OStoreHeaders.PENDING_TTL, pendingTtl);
+        }
+    }
+
+    private static void transactionHeader(HttpHeaders headers, @Nullable UUID transactionId) {
+        if (transactionId != null) {
+            headers.set(OStoreHeaders.TRANSACTION_ID, transactionId.toString());
         }
     }
 

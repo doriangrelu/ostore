@@ -29,6 +29,7 @@ import org.jspecify.annotations.Nullable;
  * @param contentLength taille annoncée, vérifiée à l'octet près
  * @param contentType type MIME, {@code null} = {@code application/octet-stream}
  * @param metadata métadonnées utilisateur
+ * @param transaction mode transactionnel de l'écriture
  * @param content contenu, lu en flux
  */
 public record CreateObjectCommand(
@@ -37,4 +38,5 @@ public record CreateObjectCommand(
         long contentLength,
         @Nullable String contentType,
         ObjectMetadata metadata,
+        TransactionMode transaction,
         InputStream content) {}

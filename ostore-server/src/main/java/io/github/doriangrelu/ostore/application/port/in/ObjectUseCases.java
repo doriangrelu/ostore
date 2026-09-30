@@ -23,8 +23,10 @@ import io.github.doriangrelu.ostore.application.result.ObjectPage;
 import io.github.doriangrelu.ostore.domain.exception.BucketNotFoundException;
 import io.github.doriangrelu.ostore.domain.exception.ConcurrentObjectUpdateException;
 import io.github.doriangrelu.ostore.domain.exception.ContentLengthMismatchException;
+import io.github.doriangrelu.ostore.domain.exception.ObjectLockedException;
 import io.github.doriangrelu.ostore.domain.exception.ObjectNotFoundException;
 import io.github.doriangrelu.ostore.domain.exception.RangeNotSatisfiableException;
+import io.github.doriangrelu.ostore.domain.exception.TransactionClosedException;
 import io.github.doriangrelu.ostore.domain.model.StoredObject;
 import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 import io.github.doriangrelu.ostore.domain.model.vo.RangeRequest;
@@ -33,8 +35,9 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Cas d'usage des objets, désignés par leur identifiant (ADR-0015). Un bucket inconnu lève
- * {@link BucketNotFoundException}, un objet inconnu {@link ObjectNotFoundException}.
+ * Cas d'usage des objets, désignés par leur identifiant (ADR-0015). Les écritures peuvent être transactionnelles
+ * (ADR-0016). Un bucket inconnu lève {@link BucketNotFoundException}, un objet inconnu
+ * {@link ObjectNotFoundException}, une transaction fermée {@link TransactionClosedException}.
  */
 public interface ObjectUseCases {
 
@@ -49,9 +52,11 @@ public interface ObjectUseCases {
     StoredObject create(CreateObjectCommand command);
 
     /**
-     * Remplace le contenu d'un objet (même identifiant) ; l'ancien blob est purgé ensuite.
+     * Remplace le contenu d'un objet (même identifiant) ; l'ancien blob est purgé ensuite. En transaction, la
+     * nouvelle version reste en attente jusqu'au commit.
      *
      * @throws ContentLengthMismatchException si la taille reçue diffère de celle annoncée
+     * @throws ObjectLockedException si l'objet est engagé dans une autre transaction
      * @throws ConcurrentObjectUpdateException si un autre remplacement du même objet l'a emporté
      */
     StoredObject replace(ReplaceObjectCommand command);
@@ -59,25 +64,34 @@ public interface ObjectUseCases {
     /** Copie un objet en un nouvel objet ; le contenu est dupliqué dans un nouveau blob. */
     StoredObject copy(CopyObjectCommand command);
 
-    /** Métadonnées d'un objet. */
-    StoredObject get(UUID id);
+    /**
+     * Métadonnées d'un objet.
+     *
+     * @param transactionId transaction dont on veut voir la version en attente, {@code null} = version validée
+     */
+    StoredObject get(UUID id, @Nullable UUID transactionId);
 
     /**
      * Ouvre le contenu d'un objet, entier ou limité à une plage.
      *
+     * @param transactionId transaction dont on veut lire la version en attente, {@code null} = version validée
      * @throws RangeNotSatisfiableException si la plage ne recouvre aucun octet
      */
-    ObjectContent open(UUID id, Optional<RangeRequest> range);
+    ObjectContent open(UUID id, Optional<RangeRequest> range, @Nullable UUID transactionId);
 
     /**
-     * Liste les objets d'un bucket par ordre de création.
+     * Liste les objets validés d'un bucket par ordre de création.
      *
      * @param namePrefix préfixe de nom, {@code null} = tous les objets (y compris sans nom)
-     * @param after reprise après cet identifiant (pagination)
+     * @param after reprise après cette position (pagination)
      * @param limit taille de page, bornée à {@link #MAX_PAGE_SIZE}
      */
     ObjectPage list(BucketName bucket, @Nullable String namePrefix, Optional<UUID> after, int limit);
 
-    /** Supprime un objet ; son blob est purgé ensuite. */
+    /**
+     * Supprime un objet ; son blob est purgé ensuite.
+     *
+     * @throws ObjectLockedException si un remplacement de l'objet est en attente
+     */
     void delete(UUID id);
 }

@@ -16,6 +16,7 @@
 package io.github.doriangrelu.ostore.domain.model;
 
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectStatus;
 import java.time.Instant;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -23,12 +24,21 @@ import org.jspecify.annotations.Nullable;
 /**
  * Vue allégée d'un objet, pour les listes (sans métadonnées ni emplacement physique).
  *
- * @param id identifiant de ressource
+ * @param id identifiant public (celui de l'objet visé pour un remplacement en attente)
+ * @param rowId identifiant de la ligne, position de pagination (égal à {@code id} hors remplacement en attente)
  * @param name nom libre, s'il existe
  * @param size taille en octets
  * @param etag empreinte MD5 hexadécimale
  * @param contentType type MIME
+ * @param status statut de l'objet
  * @param updatedAt date du dernier dépôt de contenu
  */
 public record ObjectSummary(
-        UUID id, @Nullable ObjectName name, long size, String etag, String contentType, Instant updatedAt) {}
+        UUID id,
+        UUID rowId,
+        @Nullable ObjectName name,
+        long size,
+        String etag,
+        String contentType,
+        ObjectStatus status,
+        Instant updatedAt) {}

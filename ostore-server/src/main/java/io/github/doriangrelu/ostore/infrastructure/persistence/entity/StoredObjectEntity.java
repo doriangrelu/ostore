@@ -22,10 +22,12 @@ import io.github.doriangrelu.ostore.domain.model.StoredObject;
 import io.github.doriangrelu.ostore.domain.model.vo.BlobLocation;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectMetadata;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectStatus;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
@@ -46,6 +48,9 @@ public record StoredObjectEntity(
         long sizeBytes,
         String etag,
         String contentType,
+        String status,
+        @Nullable UUID transactionId,
+        @Nullable UUID replacesObjectId,
         Instant createdAt,
         Instant updatedAt,
         @MappedCollection(idColumn = "OBJECT_ID") Set<ObjectMetadataEntity> metadata,
@@ -61,6 +66,32 @@ public record StoredObjectEntity(
         return of(object, version);
     }
 
+    /**
+     * Commit d'un remplacement : cette ligne (objet visé) prend le contenu de la version en attente, garde son
+     * identifiant et sa date de création, et redevient active.
+     */
+    public StoredObjectEntity withContentOf(StoredObjectEntity replacement) {
+        var copiedMetadata = replacement.metadata().stream()
+                .map(entry -> new ObjectMetadataEntity(entry.name(), entry.value()))
+                .collect(Collectors.toSet());
+        return new StoredObjectEntity(
+                id,
+                bucketId,
+                replacement.objectName(),
+                replacement.driverId(),
+                replacement.blobPath(),
+                replacement.sizeBytes(),
+                replacement.etag(),
+                replacement.contentType(),
+                ObjectStatus.ACTIVE.name(),
+                replacement.transactionId(),
+                null,
+                createdAt,
+                replacement.updatedAt(),
+                copiedMetadata,
+                version);
+    }
+
     public StoredObject toDomain() {
         return new StoredObject(
                 id,
@@ -72,6 +103,9 @@ public record StoredObjectEntity(
                 contentType,
                 ObjectMetadata.of(
                         metadata.stream().collect(toMap(ObjectMetadataEntity::name, ObjectMetadataEntity::value))),
+                ObjectStatus.valueOf(status),
+                transactionId,
+                replacesObjectId,
                 createdAt,
                 updatedAt);
     }
@@ -93,6 +127,9 @@ public record StoredObjectEntity(
                 object.size(),
                 object.etag(),
                 object.contentType(),
+                object.status().name(),
+                object.transactionId(),
+                object.replaces(),
                 object.createdAt(),
                 object.updatedAt(),
                 metadata,

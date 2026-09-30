@@ -72,8 +72,12 @@ public interface ObjectApi {
                                             mediaType = "application/octet-stream",
                                             schema = @Schema(type = "string", format = "binary"))))
     @ApiResponse(responseCode = "201", description = "Object stored, identifier returned")
-    @ApiResponse(responseCode = "400", description = "INVALID_OBJECT_NAME, INVALID_METADATA, CONTENT_LENGTH_MISMATCH")
-    @ApiResponse(responseCode = "404", description = "BUCKET_NOT_FOUND")
+    @ApiResponse(
+            responseCode = "400",
+            description = "INVALID_OBJECT_NAME, INVALID_METADATA, CONTENT_LENGTH_MISMATCH, INVALID_TTL,"
+                    + " CONFLICTING_TRANSACTION_HEADERS")
+    @ApiResponse(responseCode = "404", description = "BUCKET_NOT_FOUND, TRANSACTION_NOT_FOUND")
+    @ApiResponse(responseCode = "409", description = "TRANSACTION_CLOSED")
     @PostMapping(path = ApiPaths.BUCKET_OBJECTS, produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     ObjectResponse create(
@@ -88,6 +92,14 @@ public interface ObjectApi {
                     @RequestHeader(value = OStoreHeaders.META, required = false)
                     @Nullable
                     List<String> metadata,
+            @Parameter(description = "Join this open transaction (object stays PENDING until commit)")
+                    @RequestHeader(value = OStoreHeaders.TRANSACTION_ID, required = false)
+                    @Nullable
+                    UUID transactionId,
+            @Parameter(description = "Create a transaction for this write only, with this ISO-8601 lifetime")
+                    @RequestHeader(value = OStoreHeaders.PENDING_TTL, required = false)
+                    @Nullable
+                    String pendingTtl,
             @RequestBody InputStreamResource content);
 
     /** Liste les objets d'un bucket, par ordre de création. */
@@ -112,7 +124,12 @@ public interface ObjectApi {
     @Operation(summary = "Get an object metadata")
     @ApiResponse(responseCode = "404", description = "OBJECT_NOT_FOUND")
     @GetMapping(path = ApiPaths.OBJECT, produces = APPLICATION_JSON_VALUE)
-    ObjectResponse metadata(@PathVariable("id") UUID id);
+    ObjectResponse metadata(
+            @PathVariable("id") UUID id,
+            @Parameter(description = "Read the pending version written in this transaction, if any")
+                    @RequestHeader(value = OStoreHeaders.TRANSACTION_ID, required = false)
+                    @Nullable
+                    UUID transactionId);
 
     /** Lit le contenu d'un objet, entier ou partiel ({@code Range}). */
     @Operation(summary = "Download an object content, entirely or partially (single Range)")
@@ -126,7 +143,11 @@ public interface ObjectApi {
             @Parameter(description = "Single byte range, e.g. bytes=0-1023")
                     @RequestHeader(value = HttpHeaders.RANGE, required = false)
                     @Nullable
-                    String range);
+                    String range,
+            @Parameter(description = "Read the pending version written in this transaction, if any")
+                    @RequestHeader(value = OStoreHeaders.TRANSACTION_ID, required = false)
+                    @Nullable
+                    UUID transactionId);
 
     /** Remplace le contenu d'un objet ; son identifiant ne change pas. */
     @Operation(
@@ -138,9 +159,10 @@ public interface ObjectApi {
                                     @Content(
                                             mediaType = "application/octet-stream",
                                             schema = @Schema(type = "string", format = "binary"))))
-    @ApiResponse(responseCode = "200", description = "Content replaced")
-    @ApiResponse(responseCode = "404", description = "OBJECT_NOT_FOUND")
-    @ApiResponse(responseCode = "409", description = "CONCURRENT_UPDATE")
+    @ApiResponse(responseCode = "200", description = "Content replaced (or pending replacement recorded)")
+    @ApiResponse(responseCode = "400", description = "INVALID_TTL, CONFLICTING_TRANSACTION_HEADERS")
+    @ApiResponse(responseCode = "404", description = "OBJECT_NOT_FOUND, TRANSACTION_NOT_FOUND")
+    @ApiResponse(responseCode = "409", description = "CONCURRENT_UPDATE, TRANSACTION_CLOSED, OBJECT_LOCKED")
     @PutMapping(path = ApiPaths.OBJECT_CONTENT, produces = APPLICATION_JSON_VALUE)
     ObjectResponse replace(
             @PathVariable("id") UUID id,
@@ -151,20 +173,40 @@ public interface ObjectApi {
             @RequestHeader(HttpHeaders.CONTENT_LENGTH) long contentLength,
             @RequestHeader(value = HttpHeaders.CONTENT_TYPE, required = false) @Nullable String contentType,
             @RequestHeader(value = OStoreHeaders.META, required = false) @Nullable List<String> metadata,
+            @Parameter(description = "Stage the replacement in this open transaction (applied on commit)")
+                    @RequestHeader(value = OStoreHeaders.TRANSACTION_ID, required = false)
+                    @Nullable
+                    UUID transactionId,
+            @Parameter(description = "Stage the replacement in a new transaction with this ISO-8601 lifetime")
+                    @RequestHeader(value = OStoreHeaders.PENDING_TTL, required = false)
+                    @Nullable
+                    String pendingTtl,
             @RequestBody InputStreamResource content);
 
     /** Copie un objet en un nouvel objet, éventuellement dans un autre bucket. */
     @Operation(summary = "Copy an object into a new object")
     @ApiResponse(responseCode = "201", description = "Copy stored, new identifier returned")
-    @ApiResponse(responseCode = "404", description = "OBJECT_NOT_FOUND, BUCKET_NOT_FOUND")
+    @ApiResponse(responseCode = "404", description = "OBJECT_NOT_FOUND, BUCKET_NOT_FOUND, TRANSACTION_NOT_FOUND")
+    @ApiResponse(responseCode = "409", description = "TRANSACTION_CLOSED")
     @PostMapping(path = ApiPaths.OBJECT_COPY, consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    ObjectResponse copy(@PathVariable("id") UUID id, @Valid @RequestBody CopyObjectRequest request);
+    ObjectResponse copy(
+            @PathVariable("id") UUID id,
+            @Parameter(description = "Join this open transaction (copy stays PENDING until commit)")
+                    @RequestHeader(value = OStoreHeaders.TRANSACTION_ID, required = false)
+                    @Nullable
+                    UUID transactionId,
+            @Parameter(description = "Create a transaction for this copy only, with this ISO-8601 lifetime")
+                    @RequestHeader(value = OStoreHeaders.PENDING_TTL, required = false)
+                    @Nullable
+                    String pendingTtl,
+            @Valid @RequestBody CopyObjectRequest request);
 
     /** Supprime un objet ; son contenu est purgé ensuite. */
     @Operation(summary = "Delete an object")
     @ApiResponse(responseCode = "204", description = "Object deleted")
     @ApiResponse(responseCode = "404", description = "OBJECT_NOT_FOUND")
+    @ApiResponse(responseCode = "409", description = "OBJECT_LOCKED (a replacement is pending)")
     @DeleteMapping(ApiPaths.OBJECT)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void delete(@PathVariable("id") UUID id);

@@ -21,10 +21,10 @@ import io.github.doriangrelu.ostore.application.result.ObjectPage;
 import io.github.doriangrelu.ostore.contract.constant.OStoreHeaders;
 import io.github.doriangrelu.ostore.contract.dto.ObjectListResponse;
 import io.github.doriangrelu.ostore.contract.dto.ObjectResponse;
+import io.github.doriangrelu.ostore.contract.dto.ObjectStatus;
 import io.github.doriangrelu.ostore.contract.dto.ObjectSummaryResponse;
 import io.github.doriangrelu.ostore.domain.model.ObjectSummary;
 import io.github.doriangrelu.ostore.domain.model.StoredObject;
-import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectMetadata;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
 import java.util.List;
@@ -40,24 +40,33 @@ public final class ObjectDtoMapper {
 
     private ObjectDtoMapper() {}
 
+    /** Représentation publique : un remplacement en attente se présente sous l'identifiant de l'objet visé. */
     public static ObjectResponse toResponse(StoredObject object) {
         return new ObjectResponse(
-                object.id(),
+                object.publicId(),
                 nameOf(object.name()),
                 object.size(),
                 object.etag(),
                 object.contentType(),
+                ObjectStatus.valueOf(object.status().name()),
+                object.transactionId(),
                 object.createdAt(),
                 object.updatedAt(),
                 object.metadata().entries());
     }
 
-    public static ObjectListResponse toListResponse(BucketName bucket, @Nullable String namePrefix, ObjectPage page) {
+    /**
+     * Page d'objets.
+     *
+     * @param bucket bucket listé, {@code null} pour les objets d'une transaction
+     */
+    public static ObjectListResponse toListResponse(
+            @Nullable String bucket, @Nullable String namePrefix, ObjectPage page) {
         return new ObjectListResponse(
-                bucket.value(),
+                bucket,
                 namePrefix,
                 page.objects().stream().map(ObjectDtoMapper::toSummary).toList(),
-                page.lastId().map(UUID::toString).orElse(null));
+                page.resumeAfter().map(UUID::toString).orElse(null));
     }
 
     /** Nom optionnel reçu en paramètre ; une valeur vide équivaut à une absence. */
@@ -68,7 +77,7 @@ public final class ObjectDtoMapper {
                 .orElse(null);
     }
 
-    /** Point de reprise porté par un jeton de continuation (identifiant du dernier objet de la page). */
+    /** Position de reprise portée par un jeton de continuation. */
     public static Optional<UUID> fromContinuationToken(@Nullable String token) {
         return Optional.ofNullable(token).filter(value -> !value.isBlank()).map(UUID::fromString);
     }
@@ -91,7 +100,10 @@ public final class ObjectDtoMapper {
         headers.setLastModified(object.updatedAt());
         headers.set(HttpHeaders.CONTENT_TYPE, object.contentType());
         headers.set(HttpHeaders.ACCEPT_RANGES, "bytes");
-        headers.set(OStoreHeaders.RESOURCE_ID, object.id().toString());
+        headers.set(OStoreHeaders.RESOURCE_ID, object.publicId().toString());
+        if (object.transactionId() != null) {
+            headers.set(OStoreHeaders.TRANSACTION_ID, object.transactionId().toString());
+        }
         if (object.name() != null) {
             headers.setContentDisposition(ContentDisposition.attachment()
                     .filename(object.name().value(), UTF_8)
@@ -110,6 +122,7 @@ public final class ObjectDtoMapper {
                 summary.size(),
                 summary.etag(),
                 summary.contentType(),
+                ObjectStatus.valueOf(summary.status().name()),
                 summary.updatedAt());
     }
 

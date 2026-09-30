@@ -21,6 +21,7 @@ import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.toLis
 import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.toMetadata;
 import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.toName;
 import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.toResponse;
+import static io.github.doriangrelu.ostore.api.rest.mapper.TransactionDtoMapper.toTransactionMode;
 
 import io.github.doriangrelu.ostore.application.command.CopyObjectCommand;
 import io.github.doriangrelu.ostore.application.command.CreateObjectCommand;
@@ -68,28 +69,35 @@ public class ObjectController implements ObjectApi {
             long contentLength,
             @Nullable String contentType,
             @Nullable List<String> metadata,
+            @Nullable UUID transactionId,
+            @Nullable String pendingTtl,
             InputStreamResource content) {
         var command = new CreateObjectCommand(
-                new BucketName(bucket), toName(name), contentLength, contentType, toMetadata(metadata), open(content));
+                new BucketName(bucket),
+                toName(name),
+                contentLength,
+                contentType,
+                toMetadata(metadata),
+                toTransactionMode(transactionId, pendingTtl),
+                open(content));
         return toResponse(objects.create(command));
     }
 
     @Override
     public ObjectListResponse list(
             String bucket, @Nullable String namePrefix, int limit, @Nullable String continuationToken) {
-        var bucketName = new BucketName(bucket);
-        var page = objects.list(bucketName, namePrefix, fromContinuationToken(continuationToken), limit);
-        return toListResponse(bucketName, namePrefix, page);
+        var page = objects.list(new BucketName(bucket), namePrefix, fromContinuationToken(continuationToken), limit);
+        return toListResponse(bucket, namePrefix, page);
     }
 
     @Override
-    public ObjectResponse metadata(UUID id) {
-        return toResponse(objects.get(id));
+    public ObjectResponse metadata(UUID id, @Nullable UUID transactionId) {
+        return toResponse(objects.get(id, transactionId));
     }
 
     @Override
-    public ResponseEntity<Resource> content(UUID id, @Nullable String range) {
-        var content = objects.open(id, RangeRequest.parse(range));
+    public ResponseEntity<Resource> content(UUID id, @Nullable String range, @Nullable UUID transactionId) {
+        var content = objects.open(id, RangeRequest.parse(range), transactionId);
         var headers = contentHeaders(content.object());
         Resource body = new InputStreamResource(content.stream());
         return content.range()
@@ -113,17 +121,28 @@ public class ObjectController implements ObjectApi {
             long contentLength,
             @Nullable String contentType,
             @Nullable List<String> metadata,
+            @Nullable UUID transactionId,
+            @Nullable String pendingTtl,
             InputStreamResource content) {
         var command = new ReplaceObjectCommand(
-                id, toName(name), contentLength, contentType, toMetadata(metadata), open(content));
+                id,
+                toName(name),
+                contentLength,
+                contentType,
+                toMetadata(metadata),
+                toTransactionMode(transactionId, pendingTtl),
+                open(content));
         return toResponse(objects.replace(command));
     }
 
     @Override
-    public ObjectResponse copy(UUID id, CopyObjectRequest request) {
+    public ObjectResponse copy(
+            UUID id, @Nullable UUID transactionId, @Nullable String pendingTtl, CopyObjectRequest request) {
         var targetBucket =
                 Optional.ofNullable(request.targetBucket()).map(BucketName::new).orElse(null);
-        return toResponse(objects.copy(new CopyObjectCommand(id, targetBucket, toName(request.name()))));
+        var command = new CopyObjectCommand(
+                id, targetBucket, toName(request.name()), toTransactionMode(transactionId, pendingTtl));
+        return toResponse(objects.copy(command));
     }
 
     @Override

@@ -28,8 +28,15 @@ import org.jspecify.annotations.Nullable;
  * @param size taille en octets
  * @param etag empreinte MD5 hexadécimale du contenu
  * @param contentType type MIME
+ * @param status statut de l'objet
  * @param updatedAt date du dernier dépôt de contenu (UTC)
  */
 @Schema(description = "Object in a listing")
 public record ObjectSummaryResponse(
-        UUID id, @Nullable String name, long size, String etag, String contentType, Instant updatedAt) {}
+        UUID id,
+        @Nullable String name,
+        long size,
+        String etag,
+        String contentType,
+        ObjectStatus status,
+        Instant updatedAt) {}

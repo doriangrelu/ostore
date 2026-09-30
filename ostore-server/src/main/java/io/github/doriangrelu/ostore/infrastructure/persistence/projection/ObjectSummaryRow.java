@@ -17,6 +17,7 @@ package io.github.doriangrelu.ostore.infrastructure.persistence.projection;
 
 import io.github.doriangrelu.ostore.domain.model.ObjectSummary;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectStatus;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,15 +28,24 @@ import org.jspecify.annotations.Nullable;
  * (une requête par objet) quand elles ne sont pas affichées.
  */
 public record ObjectSummaryRow(
-        UUID id, @Nullable String objectName, long sizeBytes, String etag, String contentType, Instant updatedAt) {
+        UUID id,
+        @Nullable UUID replacesObjectId,
+        @Nullable String objectName,
+        long sizeBytes,
+        String etag,
+        String contentType,
+        String status,
+        Instant updatedAt) {
 
     public ObjectSummary toDomain() {
         return new ObjectSummary(
+                replacesObjectId != null ? replacesObjectId : id,
                 id,
                 Optional.ofNullable(objectName).map(ObjectName::new).orElse(null),
                 sizeBytes,
                 etag,
                 contentType,
+                ObjectStatus.valueOf(status),
                 updatedAt);
     }
 }

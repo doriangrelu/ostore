@@ -15,12 +15,15 @@
  */
 package io.github.doriangrelu.ostore.it.support;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import io.github.doriangrelu.ostore.it.client.OStoreRestClient;
 import io.github.doriangrelu.ostore.it.client.ObjectRestClient;
+import io.github.doriangrelu.ostore.it.client.TransactionRestClient;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.jspecify.annotations.Nullable;
 import org.springframework.web.client.HttpClientErrorException;
 
 /**
@@ -38,6 +41,9 @@ public interface IntegrationScenario {
     /** Client REST des objets, construit sur l'interface {@code ObjectApi} du contrat (flux binaires). */
     ObjectRestClient objects();
 
+    /** Client REST des transactions, construit sur l'interface {@code TransactionApi} du contrat. */
+    TransactionRestClient transactions();
+
     /** Accès au stockage physique (chemins enregistrés, présence des blobs). */
     StorageProbe storage();
 
@@ -46,11 +52,17 @@ public interface IntegrationScenario {
         return "it-" + UUID.randomUUID().toString().substring(0, 18);
     }
 
-    /** Erreur REST (ProblemDetail) levée par l'appel. */
+    /** Erreur REST (ProblemDetail) levée par l'appel ; échec d'assertion si l'appel réussit. */
     static Problem problemOf(ThrowingCallable call) {
-        return catchThrowableOfType(HttpClientErrorException.class, call).getResponseBodyAs(Problem.class);
+        var error = catchThrowableOfType(HttpClientErrorException.class, call);
+        assertThat(error).as("expected an HTTP client error").isNotNull();
+        return error.getResponseBodyAs(Problem.class);
     }
 
-    /** Vue simplifiée d'un ProblemDetail et de son code métier. */
-    record Problem(int status, String code, String detail) {}
+    /** Vue simplifiée d'un ProblemDetail, de son code métier et, pour TRANSACTION_CLOSED, du statut réel. */
+    record Problem(
+            int status,
+            String code,
+            String detail,
+            @Nullable String transactionStatus) {}
 }

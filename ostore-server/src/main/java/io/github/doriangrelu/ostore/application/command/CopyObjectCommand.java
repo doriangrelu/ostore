@@ -26,8 +26,10 @@ import org.jspecify.annotations.Nullable;
  * @param sourceId objet à copier
  * @param targetBucket bucket cible, {@code null} = bucket de la source
  * @param name nom de la copie, {@code null} = nom de la source
+ * @param transaction mode transactionnel de la copie
  */
 public record CopyObjectCommand(
         UUID sourceId,
         @Nullable BucketName targetBucket,
-        @Nullable ObjectName name) {}
+        @Nullable ObjectName name,
+        TransactionMode transaction) {}

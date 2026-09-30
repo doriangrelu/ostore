@@ -19,6 +19,7 @@ import io.github.doriangrelu.ostore.application.port.out.ObjectRepository;
 import io.github.doriangrelu.ostore.application.port.out.StorageDrivers;
 import io.github.doriangrelu.ostore.it.client.OStoreRestClient;
 import io.github.doriangrelu.ostore.it.client.ObjectRestClient;
+import io.github.doriangrelu.ostore.it.client.TransactionRestClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -27,11 +28,15 @@ import org.springframework.boot.test.web.server.LocalServerPort;
  * Application OStore complète démarrée sur un port aléatoire, appelée par de vrais clients HTTP.
  *
  * <p>Le contexte Spring et les conteneurs sont partagés entre toutes les classes d'un même SGBD. Les blobs
- * vont dans {@code target/it-storage} ; la purge tourne toutes les 500 ms pour être observable.
+ * vont dans {@code target/it-storage} ; la purge et l'expiration des transactions tournent toutes les 500 ms pour être observables.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"ostore.storage.drivers.local.properties.root=target/it-storage", "ostore.purge.interval=PT0.5S"})
+        properties = {
+            "ostore.storage.drivers.local.properties.root=target/it-storage",
+            "ostore.purge.interval=PT0.5S",
+            "ostore.transactions.expiration-interval=PT0.5S"
+        })
 abstract class IntegrationTest implements IntegrationScenario {
 
     @LocalServerPort
@@ -51,6 +56,11 @@ abstract class IntegrationTest implements IntegrationScenario {
     @Override
     public ObjectRestClient objects() {
         return new ObjectRestClient(baseUrl());
+    }
+
+    @Override
+    public TransactionRestClient transactions() {
+        return new TransactionRestClient(baseUrl());
     }
 
     @Override

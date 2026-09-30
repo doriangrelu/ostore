@@ -20,6 +20,7 @@ import io.github.doriangrelu.ostore.application.port.out.ObjectRepository;
 import io.github.doriangrelu.ostore.domain.exception.ConcurrentObjectUpdateException;
 import io.github.doriangrelu.ostore.domain.model.ObjectSummary;
 import io.github.doriangrelu.ostore.domain.model.StoredObject;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectStatus;
 import io.github.doriangrelu.ostore.infrastructure.persistence.entity.StoredObjectEntity;
 import io.github.doriangrelu.ostore.infrastructure.persistence.projection.ObjectSummaryRow;
 import io.github.doriangrelu.ostore.infrastructure.persistence.repository.StoredObjectEntityRepository;
@@ -32,9 +33,14 @@ import org.springframework.data.relational.core.conversion.DbActionExecutionExce
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Adaptateur du port {@link ObjectRepository} sur Spring Data JDBC. */
+/**
+ * Adaptateur du port {@link ObjectRepository} sur Spring Data JDBC. Les opérations en plusieurs étapes sont
+ * transactionnelles et rejoignent l'unité de travail appelante s'il y en a une.
+ */
 @Repository
 public class JdbcObjectRepository implements ObjectRepository {
+
+    private static final String PENDING = ObjectStatus.PENDING.name();
 
     private final StoredObjectEntityRepository entities;
     private final BlobPurgeQueue purgeQueue;
@@ -52,17 +58,17 @@ public class JdbcObjectRepository implements ObjectRepository {
     @Override
     @Transactional
     public StoredObject replace(StoredObject updated) {
-        var current =
-                entities.findById(updated.id()).orElseThrow(() -> new ConcurrentObjectUpdateException(updated.id()));
+        var current = entities.findById(updated.id())
+                .orElseThrow(() -> new ConcurrentObjectUpdateException(updated.publicId()));
         try {
             var saved = entities.save(current.updatedWith(updated));
             purgeQueue.schedule(current.blobLocation());
             return saved.toDomain();
         } catch (OptimisticLockingFailureException e) {
-            throw new ConcurrentObjectUpdateException(updated.id());
+            throw new ConcurrentObjectUpdateException(updated.publicId());
         } catch (DbActionExecutionException e) {
             if (e.getCause() instanceof OptimisticLockingFailureException) {
-                throw new ConcurrentObjectUpdateException(updated.id());
+                throw new ConcurrentObjectUpdateException(updated.publicId());
             }
             throw e;
         }
@@ -71,6 +77,11 @@ public class JdbcObjectRepository implements ObjectRepository {
     @Override
     public Optional<StoredObject> find(UUID id) {
         return entities.findById(id).map(StoredObjectEntity::toDomain);
+    }
+
+    @Override
+    public Optional<StoredObject> findPendingReplacement(UUID objectId) {
+        return entities.findByReplacesObjectId(objectId).map(StoredObjectEntity::toDomain);
     }
 
     @Override
@@ -84,21 +95,64 @@ public class JdbcObjectRepository implements ObjectRepository {
             rows = after.map(id -> entities.listAfterByName(bucketId, pattern, id, limit))
                     .orElseGet(() -> entities.listFirstByName(bucketId, pattern, limit));
         }
-        return rows.stream().map(ObjectSummaryRow::toDomain).toList();
+        return summaries(rows);
+    }
+
+    @Override
+    public List<ObjectSummary> listByTransaction(UUID transactionId, Optional<UUID> after, int limit) {
+        return summaries(after.map(id -> entities.listAfterByTransaction(transactionId, id, limit))
+                .orElseGet(() -> entities.listFirstByTransaction(transactionId, limit)));
+    }
+
+    @Override
+    public long countByTransaction(UUID transactionId) {
+        return entities.countByTransactionId(transactionId);
+    }
+
+    @Override
+    @Transactional
+    public void applyReplacements(UUID transactionId) {
+        entities.findByTransactionIdAndStatus(transactionId, PENDING).stream()
+                .filter(row -> row.replacesObjectId() != null)
+                .forEach(replacement -> {
+                    var target =
+                            entities.findById(replacement.replacesObjectId()).orElseThrow();
+                    // La ligne interne disparaît d'abord : elle référence l'objet visé.
+                    entities.delete(replacement);
+                    entities.save(target.withContentOf(replacement));
+                    purgeQueue.schedule(target.blobLocation());
+                });
+    }
+
+    @Override
+    public void activatePending(UUID transactionId) {
+        entities.activatePending(transactionId);
+    }
+
+    @Override
+    @Transactional
+    public void deletePending(UUID transactionId) {
+        entities.findByTransactionIdAndStatus(transactionId, PENDING).forEach(this::deleteAndPurge);
     }
 
     @Override
     @Transactional
     public void delete(StoredObject object) {
-        entities.findById(object.id()).ifPresent(entity -> {
-            entities.delete(entity);
-            purgeQueue.schedule(entity.blobLocation());
-        });
+        entities.findById(object.id()).ifPresent(this::deleteAndPurge);
     }
 
     @Override
     public boolean existsInBucket(UUID bucketId) {
         return entities.existsByBucketId(bucketId);
+    }
+
+    private void deleteAndPurge(StoredObjectEntity entity) {
+        entities.delete(entity);
+        purgeQueue.schedule(entity.blobLocation());
+    }
+
+    private static List<ObjectSummary> summaries(List<ObjectSummaryRow> rows) {
+        return rows.stream().map(ObjectSummaryRow::toDomain).toList();
     }
 
     private static String escapeLike(String prefix) {

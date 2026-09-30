@@ -25,14 +25,23 @@ public enum ErrorCode {
     INVALID_BUCKET_NAME(400),
     INVALID_OBJECT_NAME(400),
     INVALID_METADATA(400),
+    /** Durée de vie de transaction nulle, négative, mal formée ou au-delà du maximum. */
+    INVALID_TTL(400),
+    /** {@code X-OStore-Transaction-Id} et {@code X-OStore-Pending-Ttl} envoyés ensemble. */
+    CONFLICTING_TRANSACTION_HEADERS(400),
     /** Le nombre d'octets reçus diffère du {@code Content-Length} annoncé ; rien n'est enregistré. */
     CONTENT_LENGTH_MISMATCH(400),
     BUCKET_NOT_FOUND(404),
     OBJECT_NOT_FOUND(404),
+    TRANSACTION_NOT_FOUND(404),
     BUCKET_ALREADY_EXISTS(409),
     BUCKET_NOT_EMPTY(409),
     /** Remplacement simultané du même objet : la requête peut être rejouée. */
     CONCURRENT_UPDATE(409),
+    /** La transaction n'est pas dans l'état requis ; propriété {@code transactionStatus} = statut réel. */
+    TRANSACTION_CLOSED(409),
+    /** L'objet est engagé dans une autre transaction (écriture ou remplacement en attente). */
+    OBJECT_LOCKED(409),
     RANGE_NOT_SATISFIABLE(416),
     /** Le support de stockage (disque, backend S3…) a échoué. */
     STORAGE_ERROR(500),

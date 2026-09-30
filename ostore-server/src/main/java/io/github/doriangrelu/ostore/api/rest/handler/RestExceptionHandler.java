@@ -21,13 +21,18 @@ import io.github.doriangrelu.ostore.domain.exception.BucketAlreadyExistsExceptio
 import io.github.doriangrelu.ostore.domain.exception.BucketNotEmptyException;
 import io.github.doriangrelu.ostore.domain.exception.BucketNotFoundException;
 import io.github.doriangrelu.ostore.domain.exception.ConcurrentObjectUpdateException;
+import io.github.doriangrelu.ostore.domain.exception.ConflictingTransactionOptionsException;
 import io.github.doriangrelu.ostore.domain.exception.ContentLengthMismatchException;
 import io.github.doriangrelu.ostore.domain.exception.DomainException;
 import io.github.doriangrelu.ostore.domain.exception.InvalidBucketNameException;
 import io.github.doriangrelu.ostore.domain.exception.InvalidMetadataException;
 import io.github.doriangrelu.ostore.domain.exception.InvalidObjectNameException;
+import io.github.doriangrelu.ostore.domain.exception.InvalidTtlException;
+import io.github.doriangrelu.ostore.domain.exception.ObjectLockedException;
 import io.github.doriangrelu.ostore.domain.exception.ObjectNotFoundException;
 import io.github.doriangrelu.ostore.domain.exception.RangeNotSatisfiableException;
+import io.github.doriangrelu.ostore.domain.exception.TransactionClosedException;
+import io.github.doriangrelu.ostore.domain.exception.TransactionNotFoundException;
 import io.github.doriangrelu.ostore.driver.spi.exception.StorageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +60,12 @@ public class RestExceptionHandler {
             // RFC 9110 : une réponse 416 indique la taille réelle du contenu.
             response.header(HttpHeaders.CONTENT_RANGE, "bytes */" + unsatisfiable.size());
         }
-        return response.body(problem(codeOf(exception), exception.getMessage()));
+        var problem = problem(codeOf(exception), exception.getMessage());
+        if (exception instanceof TransactionClosedException closed) {
+            // « status » est déjà le code HTTP (RFC 9457) : propriété dédiée.
+            problem.setProperty("transactionStatus", closed.status().name());
+        }
+        return response.body(problem);
     }
 
     @ExceptionHandler(StorageException.class)
@@ -83,6 +93,11 @@ public class RestExceptionHandler {
             case BucketNotEmptyException _ -> ErrorCode.BUCKET_NOT_EMPTY;
             case ConcurrentObjectUpdateException _ -> ErrorCode.CONCURRENT_UPDATE;
             case RangeNotSatisfiableException _ -> ErrorCode.RANGE_NOT_SATISFIABLE;
+            case InvalidTtlException _ -> ErrorCode.INVALID_TTL;
+            case ConflictingTransactionOptionsException _ -> ErrorCode.CONFLICTING_TRANSACTION_HEADERS;
+            case TransactionNotFoundException _ -> ErrorCode.TRANSACTION_NOT_FOUND;
+            case TransactionClosedException _ -> ErrorCode.TRANSACTION_CLOSED;
+            case ObjectLockedException _ -> ErrorCode.OBJECT_LOCKED;
             default -> ErrorCode.INTERNAL_ERROR;
         };
     }

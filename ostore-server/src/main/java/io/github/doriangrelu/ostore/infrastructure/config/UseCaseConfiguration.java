@@ -17,14 +17,21 @@ package io.github.doriangrelu.ostore.infrastructure.config;
 
 import io.github.doriangrelu.ostore.application.port.in.BucketUseCases;
 import io.github.doriangrelu.ostore.application.port.in.ObjectUseCases;
+import io.github.doriangrelu.ostore.application.port.in.TransactionUseCases;
 import io.github.doriangrelu.ostore.application.port.out.BlobPurgeQueue;
 import io.github.doriangrelu.ostore.application.port.out.BucketRepository;
 import io.github.doriangrelu.ostore.application.port.out.ObjectRepository;
 import io.github.doriangrelu.ostore.application.port.out.StorageDrivers;
+import io.github.doriangrelu.ostore.application.port.out.TransactionRepository;
+import io.github.doriangrelu.ostore.application.port.out.UnitOfWork;
 import io.github.doriangrelu.ostore.application.service.BucketService;
 import io.github.doriangrelu.ostore.application.service.ObjectService;
+import io.github.doriangrelu.ostore.application.service.TransactionService;
+import io.github.doriangrelu.ostore.domain.model.vo.TransactionPolicy;
 import io.github.doriangrelu.ostore.infrastructure.properties.StorageProperties;
+import io.github.doriangrelu.ostore.infrastructure.properties.TransactionProperties;
 import java.time.Clock;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,11 +40,17 @@ import org.springframework.context.annotation.Configuration;
  * (ADR-0002).
  */
 @Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(TransactionProperties.class)
 class UseCaseConfiguration {
 
     @Bean
     Clock clock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    TransactionPolicy transactionPolicy(TransactionProperties properties) {
+        return new TransactionPolicy(properties.defaultTtl(), properties.maxTtl());
     }
 
     @Bean
@@ -50,9 +63,22 @@ class UseCaseConfiguration {
     ObjectUseCases objectUseCases(
             BucketRepository buckets,
             ObjectRepository objects,
+            TransactionRepository transactions,
             BlobPurgeQueue purgeQueue,
             StorageDrivers drivers,
+            UnitOfWork unitOfWork,
+            TransactionPolicy policy,
             Clock clock) {
-        return new ObjectService(buckets, objects, purgeQueue, drivers, clock);
+        return new ObjectService(buckets, objects, transactions, purgeQueue, drivers, unitOfWork, policy, clock);
+    }
+
+    @Bean
+    TransactionUseCases transactionUseCases(
+            TransactionRepository transactions,
+            ObjectRepository objects,
+            UnitOfWork unitOfWork,
+            TransactionPolicy policy,
+            Clock clock) {
+        return new TransactionService(transactions, objects, unitOfWork, policy, clock);
     }
 }
