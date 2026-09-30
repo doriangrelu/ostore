@@ -12,7 +12,7 @@ Sémantique « read committed » :
   validateur, qui reçoit ces identifiants, peut inspecter les fichiers avant de valider la transaction.
 - Connaître l'identifiant vaut droit de lecture tant que l'authentification n'est pas en place (ADR-0008).
 
-## Point ouvert (jalon M3)
-Remplacer le contenu d'un objet **déjà validé** au sein d'une transaction : la version en attente doit
-coexister avec la version active sous le même identifiant. Lecture par défaut = version active, version en
-attente lisible avec l'en-tête `X-OStore-Transaction-Id`. À confirmer à l'ouverture de M3.
+## Remplacement en transaction (tranché en M3, ADR-0016)
+Le remplacement d'un objet validé au sein d'une transaction crée une version en attente sous le même
+identifiant. Lecture par défaut = version validée ; version en attente lisible avec l'en-tête
+`X-OStore-Transaction-Id`. L'objet est verrouillé (`409 OBJECT_LOCKED`) jusqu'à la clôture de la transaction.

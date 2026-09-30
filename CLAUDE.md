@@ -72,6 +72,9 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
 19. **Organisation du stockage** (ADR-0015 §7) : le chemin d'un blob est calculé par une stratégie
     (`date` = `année/mois/jour/<uuid>` par défaut, `hashed`, `flat`, extensible), configurable par instance
     (`ostore.storage.drivers.<id>.layout`) ou imposée par le driver, et **stocké en base** (`BLOB_PATH`).
+20. **Transactions** (ADR-0016) : création, copie **et** remplacement acceptent `X-OStore-Transaction-Id`
+    (rejoindre) ou `X-OStore-Pending-Ttl` (transaction implicite) ; commit/rollback idempotents ; TTL 15 min par
+    défaut, 24 h max ; toute écriture transactionnelle verrouille la transaction (`FOR UPDATE`) via le port `UnitOfWork`.
 
 ## Skills projet (`.claude/skills/`)
 

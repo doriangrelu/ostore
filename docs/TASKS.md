@@ -35,9 +35,20 @@ Statuts : ⬜ À faire · 🟦 En cours · 🟨 À valider (utilisateur) · ✅ 
 | T2.2 | Driver FileSystem (écriture atomique, chemin fourni par la stratégie) | ✅ | Kit vert |
 | T2.3 | Driver S3 (AWS SDK v2) | ✅ | Kit vert sur Adobe S3Mock (MinIO ne publie plus d'images) |
 | T2.4 | Objets de bout en bout, **désignés par identifiant** (nom libre) : migrations `V1_1_0` + `V1_2_0`, domaine, API JSON (création/lecture+Range/métadonnées/remplacement/copie/liste/suppression, `X-OStore-Meta`), purge asynchrone, chemins stockés en base | ✅ | — |
-| T2.5 | **TI traversants objets** | ✅ | Aller-retour via le client du contrat ; fichier de plusieurs Go avec `-Xmx256m` ; lecture `Range` ; même scénario sur chaque driver |
+| T2.5 | **TI traversants objets** | ✅ | Aller-retour via le client du contrat ; fichier de 3 Gio avec `-Xmx512m` ; lecture `Range` ; même scénario sur chaque driver |
 
-## M3 — Transactions · M4 — Multipart · M5 — Exploitation · M6 — Release
+## M3 — Tranche « Transactions » (ADR-0016)
+
+| ID | Tâche | Statut | Critères de validation |
+|---|---|---|---|
+| T3.1 🔒 | Design de l'API des transactions (ADR-0016) | ✅ | Validé par l'utilisateur (TTL 15 min / 24 h, remplacement transactionnel inclus) |
+| T3.2 | Migration `V1_3_0` : `OST_TRANSACTION`, statut / transaction / remplacement sur `OST_OBJECT` | ✅ | Appliquée sur PostgreSQL et Oracle par les TI |
+| T3.3 | Domaine : machine à états, politique de durée de vie, objets en attente et remplacements | ✅ | Test unitaire de la machine à états |
+| T3.4 | Cas d'usage : ouverture, commit, rollback, prolongation, expiration ; écritures transactionnelles (création, copie, remplacement) sous verrou | ✅ | — |
+| T3.5 | API : `TransactionApi`, en-têtes `X-OStore-Transaction-Id` / `X-OStore-Pending-Ttl`, lecture de la version en attente | ✅ | — |
+| T3.6 | **TI traversants transactions** | ✅ | Commit, rollback, expiration implicite, remplacement en attente, prolongation et erreurs ; sur PostgreSQL et Oracle |
+
+## M4 — Multipart · M5 — Exploitation · M6 — Release
 
 _Détaillés à l'ouverture de chaque jalon (voir [PLAN.md](PLAN.md) §5)._
 
