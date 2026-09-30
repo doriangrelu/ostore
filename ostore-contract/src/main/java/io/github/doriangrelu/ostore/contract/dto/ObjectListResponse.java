@@ -20,17 +20,17 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Page d'objets, en ordre binaire (UTF-8) des clés.
+ * Page d'objets, par ordre de création.
  *
  * @param bucket nom du bucket
- * @param prefix préfixe demandé ({@code ""} = tous les objets)
+ * @param namePrefix filtre de nom demandé, {@code null} = tous les objets
  * @param objects objets de la page
  * @param nextContinuationToken jeton à renvoyer pour la page suivante, {@code null} sur la dernière page
  */
-@Schema(description = "Page of objects, sorted by key (binary UTF-8 order)")
+@Schema(description = "Page of objects, in creation order")
 public record ObjectListResponse(
         String bucket,
-        String prefix,
+        @Nullable String namePrefix,
         List<ObjectSummaryResponse> objects,
 
         @Schema(description = "Token of the next page, absent on the last page") @Nullable

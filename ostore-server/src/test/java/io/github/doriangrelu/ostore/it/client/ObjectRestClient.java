@@ -23,10 +23,13 @@ import io.github.doriangrelu.ostore.contract.constant.OStoreHeaders;
 import io.github.doriangrelu.ostore.contract.dto.CopyObjectRequest;
 import io.github.doriangrelu.ostore.contract.dto.ObjectListResponse;
 import io.github.doriangrelu.ostore.contract.dto.ObjectResponse;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.http.HttpClient;
+import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -60,26 +63,25 @@ public final class ObjectRestClient implements ObjectApi {
     }
 
     @Override
-    public ObjectResponse put(
+    public ObjectResponse create(
             String bucket,
-            String key,
+            @Nullable String name,
             long contentLength,
             @Nullable String contentType,
             @Nullable List<String> metadata,
             InputStreamResource content) {
-        return http.put()
-                .uri(builder -> builder.path(ApiPaths.OBJECTS)
-                        .queryParam("key", "{key}")
-                        .build(bucket, key))
-                .headers(headers -> {
-                    headers.setContentLength(contentLength);
-                    headers.set(
-                            HttpHeaders.CONTENT_TYPE,
-                            contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM_VALUE);
-                    if (metadata != null) {
-                        headers.put(OStoreHeaders.META, metadata);
+        return http.post()
+                .uri(builder -> {
+                    var variables = new HashMap<String, Object>();
+                    variables.put("bucket", bucket);
+                    builder.path(ApiPaths.BUCKET_OBJECTS);
+                    if (name != null) {
+                        builder.queryParam("name", "{name}");
+                        variables.put("name", name);
                     }
+                    return builder.build(variables);
                 })
+                .headers(headers -> binaryHeaders(headers, contentLength, contentType, metadata))
                 .accept(MediaType.APPLICATION_JSON)
                 .body(content)
                 .retrieve()
@@ -87,22 +89,42 @@ public final class ObjectRestClient implements ObjectApi {
     }
 
     /** Raccourci : dépôt d'un contenu en mémoire (petits fichiers de test). */
-    public ObjectResponse put(String bucket, String key, String contentType, byte[] content, String... metadata) {
-        return put(
-                bucket,
-                key,
-                content.length,
-                contentType,
-                List.of(metadata),
-                new InputStreamResource(new java.io.ByteArrayInputStream(content)));
+    public ObjectResponse create(
+            String bucket, @Nullable String name, String contentType, byte[] content, String... metadata) {
+        return create(bucket, name, content.length, contentType, List.of(metadata), inMemory(content));
     }
 
     @Override
-    public ResponseEntity<Resource> content(String bucket, String key, @Nullable String range) {
+    public ObjectListResponse list(
+            String bucket, @Nullable String namePrefix, int limit, @Nullable String continuationToken) {
         return http.get()
-                .uri(builder -> builder.path(ApiPaths.OBJECTS + "/content")
-                        .queryParam("key", "{key}")
-                        .build(bucket, key))
+                .uri(builder -> {
+                    var variables = new HashMap<String, Object>();
+                    variables.put("bucket", bucket);
+                    builder.path(ApiPaths.BUCKET_OBJECTS).queryParam("limit", limit);
+                    if (namePrefix != null) {
+                        builder.queryParam("namePrefix", "{prefix}");
+                        variables.put("prefix", namePrefix);
+                    }
+                    if (continuationToken != null) {
+                        builder.queryParam("continuationToken", "{token}");
+                        variables.put("token", continuationToken);
+                    }
+                    return builder.build(variables);
+                })
+                .retrieve()
+                .body(ObjectListResponse.class);
+    }
+
+    @Override
+    public ObjectResponse metadata(UUID id) {
+        return http.get().uri(ApiPaths.OBJECT, id).retrieve().body(ObjectResponse.class);
+    }
+
+    @Override
+    public ResponseEntity<Resource> content(UUID id, @Nullable String range) {
+        return http.get()
+                .uri(ApiPaths.OBJECT_CONTENT, id)
                 .headers(headers -> {
                     if (range != null) {
                         headers.set(HttpHeaders.RANGE, range);
@@ -122,8 +144,8 @@ public final class ObjectRestClient implements ObjectApi {
     }
 
     /** Raccourci : contenu complet lu en mémoire (petits fichiers de test). */
-    public byte[] read(String bucket, String key) {
-        try (var body = content(bucket, key, null).getBody().getInputStream()) {
+    public byte[] read(UUID id) {
+        try (var body = content(id, null).getBody().getInputStream()) {
             return body.readAllBytes();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -131,41 +153,31 @@ public final class ObjectRestClient implements ObjectApi {
     }
 
     @Override
-    public ObjectResponse metadata(String bucket, String key) {
-        return http.get()
-                .uri(builder -> builder.path(ApiPaths.OBJECTS + "/metadata")
-                        .queryParam("key", "{key}")
-                        .build(bucket, key))
+    public ObjectResponse replace(
+            UUID id,
+            @Nullable String name,
+            long contentLength,
+            @Nullable String contentType,
+            @Nullable List<String> metadata,
+            InputStreamResource content) {
+        return http.put()
+                .uri(ApiPaths.OBJECT_CONTENT, id)
+                .headers(headers -> binaryHeaders(headers, contentLength, contentType, metadata))
+                .accept(MediaType.APPLICATION_JSON)
+                .body(content)
                 .retrieve()
                 .body(ObjectResponse.class);
     }
 
-    @Override
-    public ObjectListResponse list(
-            String bucket, @Nullable String prefix, int maxKeys, @Nullable String continuationToken) {
-        return http.get()
-                .uri(builder -> {
-                    var variables = new java.util.HashMap<String, Object>();
-                    variables.put("bucket", bucket);
-                    builder.path(ApiPaths.OBJECTS).queryParam("maxKeys", maxKeys);
-                    if (prefix != null) {
-                        builder.queryParam("prefix", "{prefix}");
-                        variables.put("prefix", prefix);
-                    }
-                    if (continuationToken != null) {
-                        builder.queryParam("continuationToken", "{token}");
-                        variables.put("token", continuationToken);
-                    }
-                    return builder.build(variables);
-                })
-                .retrieve()
-                .body(ObjectListResponse.class);
+    /** Raccourci : remplacement par un contenu en mémoire (petits fichiers de test). */
+    public ObjectResponse replace(UUID id, String contentType, byte[] content, String... metadata) {
+        return replace(id, null, content.length, contentType, List.of(metadata), inMemory(content));
     }
 
     @Override
-    public ObjectResponse copy(String bucket, CopyObjectRequest request) {
+    public ObjectResponse copy(UUID id, CopyObjectRequest request) {
         return http.post()
-                .uri(ApiPaths.OBJECTS + "/copy", bucket)
+                .uri(ApiPaths.OBJECT_COPY, id)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
@@ -173,13 +185,22 @@ public final class ObjectRestClient implements ObjectApi {
     }
 
     @Override
-    public void delete(String bucket, String key) {
-        http.delete()
-                .uri(builder -> builder.path(ApiPaths.OBJECTS)
-                        .queryParam("key", "{key}")
-                        .build(bucket, key))
-                .retrieve()
-                .toBodilessEntity();
+    public void delete(UUID id) {
+        http.delete().uri(ApiPaths.OBJECT, id).retrieve().toBodilessEntity();
+    }
+
+    private static void binaryHeaders(
+            HttpHeaders headers, long contentLength, @Nullable String contentType, @Nullable List<String> metadata) {
+        headers.setContentLength(contentLength);
+        headers.set(
+                HttpHeaders.CONTENT_TYPE, contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        if (metadata != null && !metadata.isEmpty()) {
+            headers.put(OStoreHeaders.META, metadata);
+        }
+    }
+
+    private static InputStreamResource inMemory(byte[] content) {
+        return new InputStreamResource(new ByteArrayInputStream(content));
     }
 
     private static RestClientResponseException errorOf(ClientHttpResponse response) throws IOException {

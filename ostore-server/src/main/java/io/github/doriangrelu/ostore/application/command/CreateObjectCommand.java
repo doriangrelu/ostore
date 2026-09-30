@@ -16,25 +16,25 @@
 package io.github.doriangrelu.ostore.application.command;
 
 import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectMetadata;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
 import java.io.InputStream;
-import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 /**
- * Dépôt d'un objet (création ou remplacement).
+ * Dépôt d'un nouvel objet dans un bucket.
  *
  * @param bucket bucket cible
- * @param key clé de l'objet
+ * @param name nom libre, optionnel
  * @param contentLength taille annoncée, vérifiée à l'octet près
- * @param contentType type MIME, absent = {@code application/octet-stream}
+ * @param contentType type MIME, {@code null} = {@code application/octet-stream}
  * @param metadata métadonnées utilisateur
  * @param content contenu, lu en flux
  */
-public record PutObjectCommand(
+public record CreateObjectCommand(
         BucketName bucket,
-        ObjectKey key,
+        @Nullable ObjectName name,
         long contentLength,
-        Optional<String> contentType,
+        @Nullable String contentType,
         ObjectMetadata metadata,
         InputStream content) {}

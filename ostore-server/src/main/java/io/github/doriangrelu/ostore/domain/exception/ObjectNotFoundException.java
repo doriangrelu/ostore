@@ -15,13 +15,12 @@
  */
 package io.github.doriangrelu.ostore.domain.exception;
 
-import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
+import java.util.UUID;
 
-/** Aucun objet ne porte cette clé dans ce bucket. */
+/** Aucun objet ne porte cet identifiant. */
 public final class ObjectNotFoundException extends DomainException {
 
-    public ObjectNotFoundException(BucketName bucket, ObjectKey key) {
-        super("Object not found: '%s' in bucket '%s'".formatted(key, bucket));
+    public ObjectNotFoundException(UUID id) {
+        super("Object not found: " + id);
     }
 }

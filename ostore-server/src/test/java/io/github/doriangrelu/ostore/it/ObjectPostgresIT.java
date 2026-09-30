@@ -39,18 +39,18 @@ class ObjectPostgresIT extends PostgresIntegrationTest implements ObjectScenario
         var bucket = newBucket();
 
         var stored = objects()
-                .put(
+                .create(
                         bucket,
-                        "backups/huge.bin",
+                        "huge.bin",
                         THREE_GIB,
                         null,
                         null,
                         new InputStreamResource(SyntheticContent.stream(THREE_GIB, 42)));
 
         assertThat(stored.size()).isEqualTo(THREE_GIB);
-        var content = objects().content(bucket, "backups/huge.bin", null);
+        var content = objects().content(stored.id(), null);
         assertThat(SyntheticContent.sha256(content.getBody().getInputStream()))
                 .isEqualTo(SyntheticContent.sha256(THREE_GIB, 42));
-        objects().delete(bucket, "backups/huge.bin");
+        objects().delete(stored.id());
     }
 }

@@ -15,19 +15,26 @@
  */
 package io.github.doriangrelu.ostore.application.command;
 
-import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectMetadata;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
+import java.io.InputStream;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Copie d'un objet (contenu, type et métadonnées) en un nouvel objet.
+ * Remplacement du contenu d'un objet existant ; son identifiant ne change pas.
  *
- * @param sourceId objet à copier
- * @param targetBucket bucket cible, {@code null} = bucket de la source
- * @param name nom de la copie, {@code null} = nom de la source
+ * @param id objet à remplacer
+ * @param name nouveau nom, {@code null} = nom conservé
+ * @param contentLength taille annoncée, vérifiée à l'octet près
+ * @param contentType type MIME, {@code null} = {@code application/octet-stream}
+ * @param metadata nouvelles métadonnées (remplacent les précédentes)
+ * @param content contenu, lu en flux
  */
-public record CopyObjectCommand(
-        UUID sourceId,
-        @Nullable BucketName targetBucket,
-        @Nullable ObjectName name) {}
+public record ReplaceObjectCommand(
+        UUID id,
+        @Nullable ObjectName name,
+        long contentLength,
+        @Nullable String contentType,
+        ObjectMetadata metadata,
+        InputStream content) {}

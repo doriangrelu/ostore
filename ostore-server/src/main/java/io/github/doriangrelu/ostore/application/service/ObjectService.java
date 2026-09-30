@@ -16,7 +16,8 @@
 package io.github.doriangrelu.ostore.application.service;
 
 import io.github.doriangrelu.ostore.application.command.CopyObjectCommand;
-import io.github.doriangrelu.ostore.application.command.PutObjectCommand;
+import io.github.doriangrelu.ostore.application.command.CreateObjectCommand;
+import io.github.doriangrelu.ostore.application.command.ReplaceObjectCommand;
 import io.github.doriangrelu.ostore.application.io.MeteredInputStream;
 import io.github.doriangrelu.ostore.application.port.in.ObjectUseCases;
 import io.github.doriangrelu.ostore.application.port.out.BlobPurgeQueue;
@@ -31,7 +32,6 @@ import io.github.doriangrelu.ostore.domain.model.Bucket;
 import io.github.doriangrelu.ostore.domain.model.StoredObject;
 import io.github.doriangrelu.ostore.domain.model.vo.BlobLocation;
 import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
 import io.github.doriangrelu.ostore.domain.model.vo.RangeRequest;
 import io.github.doriangrelu.ostore.domain.util.Identifiers;
 import io.github.doriangrelu.ostore.driver.spi.model.BlobPath;
@@ -42,11 +42,13 @@ import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Implémentation des cas d'usage des objets.
  *
- * <p>Ordre des écritures (ADR-0006) : le blob est écrit <b>d'abord</b>, sous un chemin neuf, puis les
+ * <p>Ordre des écritures (ADR-0006) : le contenu est écrit <b>d'abord</b>, dans un blob neuf, puis les
  * métadonnées sont enregistrées. Si l'une des deux étapes échoue, le blob orphelin est planifié pour purge :
  * aucune donnée n'est perdue ni laissée à l'abandon.
  */
@@ -72,111 +74,110 @@ public final class ObjectService implements ObjectUseCases {
     }
 
     @Override
-    public StoredObject put(PutObjectCommand command) {
+    public StoredObject create(CreateObjectCommand command) {
         var bucket = bucketOf(command.bucket());
         var now = clock.instant();
-        var location = newBlobLocation(bucket, now);
-        var written = writeBlob(location, command.content(), command.contentLength());
-        var object = StoredObject.create(
-                bucket,
-                command.key(),
-                location,
-                written.count(),
-                written.md5Hex(),
-                command.contentType().orElse(StoredObject.DEFAULT_CONTENT_TYPE),
-                command.metadata(),
-                now);
-        return persistOrPurge(object);
+        var content =
+                writeContent(bucket.driverId(), command.content(), command.contentLength(), command.contentType(), now);
+        return insertOrPurge(StoredObject.create(bucket.id(), command.name(), content, command.metadata(), now));
+    }
+
+    @Override
+    public StoredObject replace(ReplaceObjectCommand command) {
+        var current = get(command.id());
+        var now = clock.instant();
+        var content = writeContent(
+                current.blob().driverId(), command.content(), command.contentLength(), command.contentType(), now);
+        var updated = current.withContent(content, command.name(), command.metadata(), now);
+        try {
+            return objects.replace(updated);
+        } catch (RuntimeException e) {
+            purgeQueue.schedule(content.blob());
+            throw e;
+        }
     }
 
     @Override
     public StoredObject copy(CopyObjectCommand command) {
-        var source = find(command.sourceBucket(), command.sourceKey());
-        var target = bucketOf(command.targetBucket());
+        var source = get(command.sourceId());
+        var target = Optional.ofNullable(command.targetBucket()).map(this::bucketOf);
+        var bucketId = target.map(Bucket::id).orElse(source.bucketId());
+        var driverId = target.map(Bucket::driverId).orElse(source.blob().driverId());
         var now = clock.instant();
-        var location = newBlobLocation(target, now);
-        MeteredInputStream written;
-        try (var content = read(source.blob(), Optional.empty())) {
-            written = writeBlob(location, content, source.size());
+        StoredObject.Content content;
+        try (var sourceContent = read(source.blob(), Optional.empty())) {
+            content = writeContent(driverId, sourceContent, source.size(), source.contentType(), now);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        var copy = StoredObject.create(
-                target,
-                command.targetKey(),
-                location,
-                written.count(),
-                written.md5Hex(),
-                source.contentType(),
-                source.metadata(),
-                now);
-        return persistOrPurge(copy);
+        var name = command.name() != null ? command.name() : source.name();
+        return insertOrPurge(StoredObject.create(bucketId, name, content, source.metadata(), now));
     }
 
     @Override
-    public StoredObject get(BucketName bucket, ObjectKey key) {
-        return find(bucket, key);
+    public StoredObject get(UUID id) {
+        return objects.find(id).orElseThrow(() -> new ObjectNotFoundException(id));
     }
 
     @Override
-    public ObjectContent open(BucketName bucket, ObjectKey key, Optional<RangeRequest> range) {
-        var object = find(bucket, key);
+    public ObjectContent open(UUID id, Optional<RangeRequest> range) {
+        var object = get(id);
         var resolved = range.map(request -> request.resolve(object.size()));
         var stream = read(object.blob(), resolved.map(r -> new ByteRange(r.start(), r.end())));
         return new ObjectContent(object, stream, resolved);
     }
 
     @Override
-    public ObjectPage list(BucketName bucket, String prefix, Optional<ObjectKey> after, int maxKeys) {
-        int pageSize = Math.clamp(maxKeys, 1, MAX_PAGE_SIZE);
+    public ObjectPage list(BucketName bucket, @Nullable String namePrefix, Optional<UUID> after, int limit) {
+        int pageSize = Math.clamp(limit, 1, MAX_PAGE_SIZE);
         // Un élément de plus que la page : sa présence indique qu'il reste des objets.
-        var found = objects.list(bucketOf(bucket).id(), prefix, after, pageSize + 1);
+        var found = objects.list(bucketOf(bucket).id(), namePrefix, after, pageSize + 1);
         if (found.size() <= pageSize) {
             return new ObjectPage(found, Optional.empty());
         }
         var page = found.subList(0, pageSize);
-        return new ObjectPage(page, Optional.of(page.getLast().key()));
+        return new ObjectPage(page, Optional.of(page.getLast().id()));
     }
 
     @Override
-    public void delete(BucketName bucket, ObjectKey key) {
-        objects.delete(find(bucket, key));
+    public void delete(UUID id) {
+        objects.delete(get(id));
     }
 
     private Bucket bucketOf(BucketName name) {
         return buckets.findByName(name).orElseThrow(() -> new BucketNotFoundException(name));
     }
 
-    private StoredObject find(BucketName bucketName, ObjectKey key) {
-        var bucket = bucketOf(bucketName);
-        return objects.find(bucket.id(), key).orElseThrow(() -> new ObjectNotFoundException(bucketName, key));
-    }
-
-    private BlobLocation newBlobLocation(Bucket bucket, Instant now) {
-        var path = drivers.layout(bucket.driverId()).pathOf(Identifiers.newId(now), now);
-        return new BlobLocation(bucket.driverId(), path.value());
-    }
-
     private InputStream read(BlobLocation location, Optional<ByteRange> range) {
         return drivers.driver(location.driverId()).read(new BlobPath(location.path()), range);
     }
 
-    /** Écrit le blob et vérifie sa taille ; le flux mesuré renvoyé donne la taille et le MD5 reçus. */
-    private MeteredInputStream writeBlob(BlobLocation location, InputStream content, long expectedSize) {
+    /**
+     * Écrit un contenu dans un blob neuf, rangé selon la stratégie de chemins du driver, et vérifie sa taille.
+     * En cas d'échec, le blob éventuellement écrit est planifié pour purge.
+     */
+    private StoredObject.Content writeContent(
+            String driverId, InputStream content, long expectedSize, @Nullable String contentType, Instant now) {
+        var path = drivers.layout(driverId).pathOf(Identifiers.newId(now), now);
+        var location = new BlobLocation(driverId, path.value());
         var metered = new MeteredInputStream(content);
         try {
-            drivers.driver(location.driverId()).write(new BlobPath(location.path()), metered, expectedSize);
+            drivers.driver(driverId).write(path, metered, expectedSize);
             metered.requireExactly(expectedSize);
-            return metered;
         } catch (RuntimeException e) {
             purgeQueue.schedule(location);
             throw e;
         }
+        return new StoredObject.Content(
+                location,
+                metered.count(),
+                metered.md5Hex(),
+                contentType != null ? contentType : StoredObject.DEFAULT_CONTENT_TYPE);
     }
 
-    private StoredObject persistOrPurge(StoredObject object) {
+    private StoredObject insertOrPurge(StoredObject object) {
         try {
-            return objects.putActive(object);
+            return objects.insert(object);
         } catch (RuntimeException e) {
             purgeQueue.schedule(object.blob());
             throw e;

@@ -19,23 +19,25 @@ import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.conte
 import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.fromContinuationToken;
 import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.toListResponse;
 import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.toMetadata;
+import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.toName;
 import static io.github.doriangrelu.ostore.api.rest.mapper.ObjectDtoMapper.toResponse;
 
 import io.github.doriangrelu.ostore.application.command.CopyObjectCommand;
-import io.github.doriangrelu.ostore.application.command.PutObjectCommand;
+import io.github.doriangrelu.ostore.application.command.CreateObjectCommand;
+import io.github.doriangrelu.ostore.application.command.ReplaceObjectCommand;
 import io.github.doriangrelu.ostore.application.port.in.ObjectUseCases;
 import io.github.doriangrelu.ostore.contract.api.ObjectApi;
 import io.github.doriangrelu.ostore.contract.dto.CopyObjectRequest;
 import io.github.doriangrelu.ostore.contract.dto.ObjectListResponse;
 import io.github.doriangrelu.ostore.contract.dto.ObjectResponse;
 import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
 import io.github.doriangrelu.ostore.domain.model.vo.RangeRequest;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -60,27 +62,34 @@ public class ObjectController implements ObjectApi {
     }
 
     @Override
-    public ObjectResponse put(
+    public ObjectResponse create(
             String bucket,
-            String key,
+            @Nullable String name,
             long contentLength,
             @Nullable String contentType,
             @Nullable List<String> metadata,
             InputStreamResource content) {
-        var bucketName = new BucketName(bucket);
-        var command = new PutObjectCommand(
-                bucketName,
-                new ObjectKey(key),
-                contentLength,
-                Optional.ofNullable(contentType),
-                toMetadata(metadata),
-                open(content));
-        return toResponse(bucketName, objects.put(command));
+        var command = new CreateObjectCommand(
+                new BucketName(bucket), toName(name), contentLength, contentType, toMetadata(metadata), open(content));
+        return toResponse(objects.create(command));
     }
 
     @Override
-    public ResponseEntity<Resource> content(String bucket, String key, @Nullable String range) {
-        var content = objects.open(new BucketName(bucket), new ObjectKey(key), RangeRequest.parse(range));
+    public ObjectListResponse list(
+            String bucket, @Nullable String namePrefix, int limit, @Nullable String continuationToken) {
+        var bucketName = new BucketName(bucket);
+        var page = objects.list(bucketName, namePrefix, fromContinuationToken(continuationToken), limit);
+        return toListResponse(bucketName, namePrefix, page);
+    }
+
+    @Override
+    public ObjectResponse metadata(UUID id) {
+        return toResponse(objects.get(id));
+    }
+
+    @Override
+    public ResponseEntity<Resource> content(UUID id, @Nullable String range) {
+        var content = objects.open(id, RangeRequest.parse(range));
         var headers = contentHeaders(content.object());
         Resource body = new InputStreamResource(content.stream());
         return content.range()
@@ -98,36 +107,31 @@ public class ObjectController implements ObjectApi {
     }
 
     @Override
-    public ObjectResponse metadata(String bucket, String key) {
-        var bucketName = new BucketName(bucket);
-        return toResponse(bucketName, objects.get(bucketName, new ObjectKey(key)));
+    public ObjectResponse replace(
+            UUID id,
+            @Nullable String name,
+            long contentLength,
+            @Nullable String contentType,
+            @Nullable List<String> metadata,
+            InputStreamResource content) {
+        var command = new ReplaceObjectCommand(
+                id, toName(name), contentLength, contentType, toMetadata(metadata), open(content));
+        return toResponse(objects.replace(command));
     }
 
     @Override
-    public ObjectListResponse list(
-            String bucket, @Nullable String prefix, int maxKeys, @Nullable String continuationToken) {
-        var bucketName = new BucketName(bucket);
-        var effectivePrefix = Objects.requireNonNullElse(prefix, "");
-        var page = objects.list(bucketName, effectivePrefix, fromContinuationToken(continuationToken), maxKeys);
-        return toListResponse(bucketName, effectivePrefix, page);
+    public ObjectResponse copy(UUID id, CopyObjectRequest request) {
+        var targetBucket =
+                Optional.ofNullable(request.targetBucket()).map(BucketName::new).orElse(null);
+        return toResponse(objects.copy(new CopyObjectCommand(id, targetBucket, toName(request.name()))));
     }
 
     @Override
-    public ObjectResponse copy(String bucket, CopyObjectRequest request) {
-        var source = new BucketName(bucket);
-        var target =
-                Optional.ofNullable(request.targetBucket()).map(BucketName::new).orElse(source);
-        var command = new CopyObjectCommand(
-                source, new ObjectKey(request.sourceKey()), target, new ObjectKey(request.targetKey()));
-        return toResponse(target, objects.copy(command));
+    public void delete(UUID id) {
+        objects.delete(id);
     }
 
-    @Override
-    public void delete(String bucket, String key) {
-        objects.delete(new BucketName(bucket), new ObjectKey(key));
-    }
-
-    private static java.io.InputStream open(Resource content) {
+    private static InputStream open(InputStreamResource content) {
         try {
             return content.getInputStream();
         } catch (IOException e) {

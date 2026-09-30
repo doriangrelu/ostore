@@ -16,22 +16,25 @@
 package io.github.doriangrelu.ostore.application.port.in;
 
 import io.github.doriangrelu.ostore.application.command.CopyObjectCommand;
-import io.github.doriangrelu.ostore.application.command.PutObjectCommand;
+import io.github.doriangrelu.ostore.application.command.CreateObjectCommand;
+import io.github.doriangrelu.ostore.application.command.ReplaceObjectCommand;
 import io.github.doriangrelu.ostore.application.result.ObjectContent;
 import io.github.doriangrelu.ostore.application.result.ObjectPage;
 import io.github.doriangrelu.ostore.domain.exception.BucketNotFoundException;
+import io.github.doriangrelu.ostore.domain.exception.ConcurrentObjectUpdateException;
 import io.github.doriangrelu.ostore.domain.exception.ContentLengthMismatchException;
 import io.github.doriangrelu.ostore.domain.exception.ObjectNotFoundException;
 import io.github.doriangrelu.ostore.domain.exception.RangeNotSatisfiableException;
 import io.github.doriangrelu.ostore.domain.model.StoredObject;
 import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
 import io.github.doriangrelu.ostore.domain.model.vo.RangeRequest;
 import java.util.Optional;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
- * Cas d'usage des objets, appelés par l'API REST. Un bucket inconnu lève {@link BucketNotFoundException},
- * un objet inconnu {@link ObjectNotFoundException}.
+ * Cas d'usage des objets, désignés par leur identifiant (ADR-0015). Un bucket inconnu lève
+ * {@link BucketNotFoundException}, un objet inconnu {@link ObjectNotFoundException}.
  */
 public interface ObjectUseCases {
 
@@ -39,35 +42,42 @@ public interface ObjectUseCases {
     int MAX_PAGE_SIZE = 1000;
 
     /**
-     * Dépose un objet : le contenu est écrit en flux dans un nouveau blob, puis l'objet remplace atomiquement
-     * la version précédente de sa clé.
+     * Dépose un nouvel objet : le contenu est écrit en flux dans un nouveau blob.
      *
      * @throws ContentLengthMismatchException si la taille reçue diffère de celle annoncée
      */
-    StoredObject put(PutObjectCommand command);
+    StoredObject create(CreateObjectCommand command);
 
-    /** Copie un objet ; le contenu est dupliqué dans un nouveau blob. */
+    /**
+     * Remplace le contenu d'un objet (même identifiant) ; l'ancien blob est purgé ensuite.
+     *
+     * @throws ContentLengthMismatchException si la taille reçue diffère de celle annoncée
+     * @throws ConcurrentObjectUpdateException si un autre remplacement du même objet l'a emporté
+     */
+    StoredObject replace(ReplaceObjectCommand command);
+
+    /** Copie un objet en un nouvel objet ; le contenu est dupliqué dans un nouveau blob. */
     StoredObject copy(CopyObjectCommand command);
 
     /** Métadonnées d'un objet. */
-    StoredObject get(BucketName bucket, ObjectKey key);
+    StoredObject get(UUID id);
 
     /**
      * Ouvre le contenu d'un objet, entier ou limité à une plage.
      *
      * @throws RangeNotSatisfiableException si la plage ne recouvre aucun octet
      */
-    ObjectContent open(BucketName bucket, ObjectKey key, Optional<RangeRequest> range);
+    ObjectContent open(UUID id, Optional<RangeRequest> range);
 
     /**
-     * Liste les objets d'un bucket en ordre binaire des clés.
+     * Liste les objets d'un bucket par ordre de création.
      *
-     * @param prefix préfixe des clés (vide = toutes)
-     * @param after reprise après cette clé (pagination)
-     * @param maxKeys taille de page, bornée à {@link #MAX_PAGE_SIZE}
+     * @param namePrefix préfixe de nom, {@code null} = tous les objets (y compris sans nom)
+     * @param after reprise après cet identifiant (pagination)
+     * @param limit taille de page, bornée à {@link #MAX_PAGE_SIZE}
      */
-    ObjectPage list(BucketName bucket, String prefix, Optional<ObjectKey> after, int maxKeys);
+    ObjectPage list(BucketName bucket, @Nullable String namePrefix, Optional<UUID> after, int limit);
 
     /** Supprime un objet ; son blob est purgé ensuite. */
-    void delete(BucketName bucket, ObjectKey key);
+    void delete(UUID id);
 }

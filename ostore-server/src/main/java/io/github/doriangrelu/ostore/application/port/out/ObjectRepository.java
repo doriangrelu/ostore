@@ -18,31 +18,35 @@ package io.github.doriangrelu.ostore.application.port.out;
 import io.github.doriangrelu.ostore.domain.exception.ConcurrentObjectUpdateException;
 import io.github.doriangrelu.ostore.domain.model.ObjectSummary;
 import io.github.doriangrelu.ostore.domain.model.StoredObject;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /** Stockage des métadonnées d'objets. */
 public interface ObjectRepository {
 
+    /** Enregistre un nouvel objet. */
+    StoredObject insert(StoredObject object);
+
     /**
-     * Enregistre un objet comme version active de sa clé, <b>atomiquement</b> : la version précédente éventuelle
-     * est supprimée et son blob planifié pour purge dans la même transaction.
+     * Remplace le contenu d'un objet existant <b>atomiquement</b> : l'objet mis à jour est enregistré et le blob
+     * précédent planifié pour purge, dans la même transaction.
      *
-     * @throws ConcurrentObjectUpdateException si une écriture simultanée sur la même clé l'a emporté
+     * @throws ConcurrentObjectUpdateException si l'objet a été modifié ou supprimé entre-temps
      */
-    StoredObject putActive(StoredObject object);
+    StoredObject replace(StoredObject updated);
 
-    Optional<StoredObject> find(UUID bucketId, ObjectKey key);
+    Optional<StoredObject> find(UUID id);
 
     /**
-     * Objets d'un bucket en ordre binaire des clés (UTF-8), à partir de la clé suivant {@code after}.
+     * Objets d'un bucket par identifiant croissant (ordre de création), à partir de l'identifiant suivant
+     * {@code after}.
      *
-     * @param prefix préfixe des clés (vide = toutes)
+     * @param namePrefix préfixe de nom, {@code null} = tous les objets, y compris sans nom
      * @param limit nombre maximal d'éléments
      */
-    List<ObjectSummary> list(UUID bucketId, String prefix, Optional<ObjectKey> after, int limit);
+    List<ObjectSummary> list(UUID bucketId, @Nullable String namePrefix, Optional<UUID> after, int limit);
 
     /** Supprime un objet et planifie la purge de son blob, dans la même transaction. */
     void delete(StoredObject object);

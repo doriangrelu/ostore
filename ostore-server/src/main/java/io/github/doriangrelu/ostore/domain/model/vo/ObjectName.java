@@ -15,33 +15,30 @@
  */
 package io.github.doriangrelu.ostore.domain.model.vo;
 
-import io.github.doriangrelu.ostore.domain.exception.InvalidObjectKeyException;
+import io.github.doriangrelu.ostore.domain.exception.InvalidObjectNameException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
- * Clé d'un objet dans son bucket : 1 à 1024 octets UTF-8, sans caractère de contrôle. Les {@code /} y sont
- * libres et servent de séparateurs logiques (listes par préfixe).
+ * Nom libre d'un objet (ex. nom de fichier) : 1 à 1024 octets UTF-8, sans caractère de contrôle.
  *
- * @param value clé brute, déjà validée
- * @throws InvalidObjectKeyException si la clé ne respecte pas ces règles
+ * <p>Le nom est <b>descriptif</b> : il n'est pas unique et ne désigne pas l'objet, toujours adressé par son
+ * identifiant (ADR-0015). Il sert au filtrage des listes et au nom de fichier proposé au téléchargement.
+ *
+ * @param value nom brut, déjà validé
+ * @throws InvalidObjectNameException si le nom ne respecte pas ces règles
  */
-public record ObjectKey(String value) implements Comparable<ObjectKey> {
+public record ObjectName(String value) {
 
     /** Taille maximale en octets UTF-8. */
     public static final int MAX_BYTES = 1024;
 
-    public ObjectKey {
+    public ObjectName {
         Objects.requireNonNull(value, "value");
         int bytes = value.getBytes(StandardCharsets.UTF_8).length;
         if (bytes == 0 || bytes > MAX_BYTES || value.chars().anyMatch(Character::isISOControl)) {
-            throw new InvalidObjectKeyException(value);
+            throw new InvalidObjectNameException(value);
         }
-    }
-
-    @Override
-    public int compareTo(ObjectKey other) {
-        return value.compareTo(other.value);
     }
 
     @Override

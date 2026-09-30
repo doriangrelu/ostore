@@ -17,15 +17,19 @@ package io.github.doriangrelu.ostore.contract.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Objet dans une liste.
  *
- * @param key clé de l'objet
+ * @param id identifiant de ressource
+ * @param name nom libre, s'il existe
  * @param size taille en octets
  * @param etag empreinte MD5 hexadécimale du contenu
  * @param contentType type MIME
- * @param lastModified date du dépôt (UTC)
+ * @param updatedAt date du dernier dépôt de contenu (UTC)
  */
 @Schema(description = "Object in a listing")
-public record ObjectSummaryResponse(String key, long size, String etag, String contentType, Instant lastModified) {}
+public record ObjectSummaryResponse(
+        UUID id, @Nullable String name, long size, String etag, String contentType, Instant updatedAt) {}

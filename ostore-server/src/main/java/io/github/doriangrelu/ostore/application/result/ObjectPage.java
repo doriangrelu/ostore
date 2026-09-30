@@ -16,17 +16,17 @@
 package io.github.doriangrelu.ostore.application.result;
 
 import io.github.doriangrelu.ostore.domain.model.ObjectSummary;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Page d'une liste d'objets.
  *
- * @param objects objets de la page, en ordre binaire des clés
- * @param lastKey dernière clé de la page s'il en reste d'autres (point de reprise), sinon vide
+ * @param objects objets de la page, par ordre de création (identifiants UUID v7)
+ * @param lastId identifiant du dernier objet s'il reste d'autres pages (point de reprise), sinon vide
  */
-public record ObjectPage(List<ObjectSummary> objects, Optional<ObjectKey> lastKey) {
+public record ObjectPage(List<ObjectSummary> objects, Optional<UUID> lastId) {
 
     public ObjectPage {
         objects = List.copyOf(objects);

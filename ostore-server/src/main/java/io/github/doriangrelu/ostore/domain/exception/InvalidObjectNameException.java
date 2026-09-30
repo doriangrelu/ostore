@@ -15,10 +15,10 @@
  */
 package io.github.doriangrelu.ostore.domain.exception;
 
-/** La clé d'objet est vide, trop longue (plus de 1024 octets UTF-8) ou contient un caractère de contrôle. */
-public final class InvalidObjectKeyException extends DomainException {
+/** Le nom d'objet est vide, trop long (plus de 1024 octets UTF-8) ou contient un caractère de contrôle. */
+public final class InvalidObjectNameException extends DomainException {
 
-    public InvalidObjectKeyException(String key) {
-        super("Invalid object key: '%s'".formatted(key));
+    public InvalidObjectNameException(String name) {
+        super("Invalid object name: '%s'".formatted(name));
     }
 }

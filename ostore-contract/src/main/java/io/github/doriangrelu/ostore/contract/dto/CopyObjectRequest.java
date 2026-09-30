@@ -16,22 +16,18 @@
 package io.github.doriangrelu.ostore.contract.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Copie d'un objet du bucket courant vers une autre clé, éventuellement dans un autre bucket.
+ * Copie d'un objet en un nouvel objet, éventuellement dans un autre bucket.
  *
- * @param sourceKey clé de l'objet à copier
- * @param targetBucket bucket cible ({@code null} = bucket courant)
- * @param targetKey clé cible
+ * @param targetBucket bucket cible ({@code null} = bucket de l'objet copié)
+ * @param name nom de la copie ({@code null} = nom de l'objet copié)
  */
 @Schema(description = "Object copy request")
 public record CopyObjectRequest(
-        @Schema(description = "Key of the object to copy") @NotBlank
-        String sourceKey,
-
-        @Schema(description = "Target bucket, current bucket when absent") @Nullable
+        @Schema(description = "Target bucket, source bucket when absent") @Nullable
         String targetBucket,
 
-        @Schema(description = "Target key") @NotBlank String targetKey) {}
+        @Schema(description = "Name of the copy, source name when absent") @Nullable
+        String name) {}

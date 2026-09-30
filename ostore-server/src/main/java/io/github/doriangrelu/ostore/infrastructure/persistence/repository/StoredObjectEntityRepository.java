@@ -18,7 +18,6 @@ package io.github.doriangrelu.ostore.infrastructure.persistence.repository;
 import io.github.doriangrelu.ostore.infrastructure.persistence.entity.StoredObjectEntity;
 import io.github.doriangrelu.ostore.infrastructure.persistence.projection.ObjectSummaryRow;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
@@ -26,26 +25,28 @@ import org.springframework.data.repository.ListCrudRepository;
 /**
  * Repository Spring Data JDBC de {@link StoredObjectEntity}.
  *
- * <p>Les listes s'appuient sur l'index {@code UK_OST_OBJECT_BUCKET_KEY} et l'ordre binaire des clés (collation
- * {@code "C"} sur PostgreSQL, session {@code NLS_SORT=BINARY} sur Oracle). Deux requêtes distinctes pour la
- * première page et les suivantes : Oracle assimile la chaîne vide à {@code NULL}, ce qui interdit un curseur
- * « vide » unique. Le motif {@code LIKE} échappe {@code !}, {@code %} et {@code _} avec {@code !}.
+ * <p>Les listes sont paginées par identifiant croissant (UUID v7, donc ordre de création), comparé octet par
+ * octet sur PostgreSQL ({@code UUID}) comme sur Oracle ({@code RAW(16)}), et servies par l'index
+ * {@code IX_OST_OBJECT_BUCKET_ID} ou {@code IX_OST_OBJECT_BUCKET_NAME}. Une requête par cas (première page ou
+ * suite, avec ou sans filtre de nom) : chacune reste simple et ne dépend d'aucun paramètre {@code NULL}, qu'Oracle
+ * confond avec la chaîne vide. Le motif {@code LIKE} échappe {@code !}, {@code %} et {@code _} avec {@code !}.
  */
 public interface StoredObjectEntityRepository extends ListCrudRepository<StoredObjectEntity, UUID> {
 
-    Optional<StoredObjectEntity> findByBucketIdAndObjectKey(UUID bucketId, String objectKey);
+    String SUMMARY = "SELECT ID, OBJECT_NAME, SIZE_BYTES, ETAG, CONTENT_TYPE, UPDATED_AT FROM OST_OBJECT ";
+    String PAGE = " ORDER BY ID FETCH FIRST :limit ROWS ONLY";
 
     boolean existsByBucketId(UUID bucketId);
 
-    @Query("""
-            SELECT OBJECT_KEY, SIZE_BYTES, ETAG, CONTENT_TYPE, CREATED_AT FROM OST_OBJECT
-            WHERE BUCKET_ID = :bucketId AND OBJECT_KEY LIKE :pattern ESCAPE '!'
-            ORDER BY OBJECT_KEY FETCH FIRST :limit ROWS ONLY""")
-    List<ObjectSummaryRow> listFirst(UUID bucketId, String pattern, int limit);
+    @Query(SUMMARY + "WHERE BUCKET_ID = :bucketId" + PAGE)
+    List<ObjectSummaryRow> listFirst(UUID bucketId, int limit);
 
-    @Query("""
-            SELECT OBJECT_KEY, SIZE_BYTES, ETAG, CONTENT_TYPE, CREATED_AT FROM OST_OBJECT
-            WHERE BUCKET_ID = :bucketId AND OBJECT_KEY LIKE :pattern ESCAPE '!' AND OBJECT_KEY > :after
-            ORDER BY OBJECT_KEY FETCH FIRST :limit ROWS ONLY""")
-    List<ObjectSummaryRow> listAfter(UUID bucketId, String pattern, String after, int limit);
+    @Query(SUMMARY + "WHERE BUCKET_ID = :bucketId AND ID > :after" + PAGE)
+    List<ObjectSummaryRow> listAfter(UUID bucketId, UUID after, int limit);
+
+    @Query(SUMMARY + "WHERE BUCKET_ID = :bucketId AND OBJECT_NAME LIKE :pattern ESCAPE '!'" + PAGE)
+    List<ObjectSummaryRow> listFirstByName(UUID bucketId, String pattern, int limit);
+
+    @Query(SUMMARY + "WHERE BUCKET_ID = :bucketId AND OBJECT_NAME LIKE :pattern ESCAPE '!' AND ID > :after" + PAGE)
+    List<ObjectSummaryRow> listAfterByName(UUID bucketId, String pattern, UUID after, int limit);
 }

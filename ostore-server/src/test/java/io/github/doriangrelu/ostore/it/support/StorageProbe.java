@@ -15,10 +15,12 @@
  */
 package io.github.doriangrelu.ostore.it.support;
 
+import io.github.doriangrelu.ostore.application.port.out.ObjectRepository;
 import io.github.doriangrelu.ostore.application.port.out.StorageDrivers;
+import io.github.doriangrelu.ostore.domain.model.StoredObject;
 import io.github.doriangrelu.ostore.domain.model.vo.BlobLocation;
 import io.github.doriangrelu.ostore.driver.spi.model.BlobPath;
-import org.springframework.jdbc.core.simple.JdbcClient;
+import java.util.UUID;
 
 /**
  * Regard sur le stockage physique, pour vérifier ce que l'API ne montre pas : chemin enregistré en base et
@@ -26,22 +28,17 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  */
 public final class StorageProbe {
 
-    private final JdbcClient jdbc;
+    private final ObjectRepository objects;
     private final StorageDrivers drivers;
 
-    StorageProbe(JdbcClient jdbc, StorageDrivers drivers) {
-        this.jdbc = jdbc;
+    StorageProbe(ObjectRepository objects, StorageDrivers drivers) {
+        this.objects = objects;
         this.drivers = drivers;
     }
 
-    /** Emplacement enregistré en base pour l'objet actif de cette clé. */
-    public BlobLocation blobOf(String bucket, String key) {
-        return jdbc.sql("""
-                        SELECT o.DRIVER_ID, o.BLOB_PATH FROM OST_OBJECT o JOIN OST_BUCKET b ON b.ID = o.BUCKET_ID
-                        WHERE b.NAME = ? AND o.OBJECT_KEY = ?""")
-                .params(bucket, key)
-                .query((row, _) -> new BlobLocation(row.getString("DRIVER_ID"), row.getString("BLOB_PATH")))
-                .single();
+    /** Emplacement enregistré en base pour le contenu courant de l'objet. */
+    public BlobLocation blobOf(UUID objectId) {
+        return objects.find(objectId).map(StoredObject::blob).orElseThrow();
     }
 
     /** Indique si le blob existe encore sur son driver. */

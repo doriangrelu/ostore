@@ -15,12 +15,12 @@
  */
 package io.github.doriangrelu.ostore.domain.exception;
 
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
+import java.util.UUID;
 
-/** Deux écritures simultanées ont visé la même clé ; l'une a été rejetée et peut être rejouée. */
+/** Deux remplacements simultanés ont visé le même objet ; l'un a été rejeté et peut être rejoué. */
 public final class ConcurrentObjectUpdateException extends DomainException {
 
-    public ConcurrentObjectUpdateException(ObjectKey key) {
-        super("Concurrent update of object '%s', retry the request".formatted(key));
+    public ConcurrentObjectUpdateException(UUID id) {
+        super("Concurrent update of object %s, retry the request".formatted(id));
     }
 }

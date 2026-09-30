@@ -16,16 +16,26 @@
 package io.github.doriangrelu.ostore.infrastructure.persistence.projection;
 
 import io.github.doriangrelu.ostore.domain.model.ObjectSummary;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
 import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Projection allégée d'une ligne de {@code OST_OBJECT} pour les listes : évite de charger les métadonnées
  * (une requête par objet) quand elles ne sont pas affichées.
  */
-public record ObjectSummaryRow(String objectKey, long sizeBytes, String etag, String contentType, Instant createdAt) {
+public record ObjectSummaryRow(
+        UUID id, @Nullable String objectName, long sizeBytes, String etag, String contentType, Instant updatedAt) {
 
     public ObjectSummary toDomain() {
-        return new ObjectSummary(new ObjectKey(objectKey), sizeBytes, etag, contentType, createdAt);
+        return new ObjectSummary(
+                id,
+                Optional.ofNullable(objectName).map(ObjectName::new).orElse(null),
+                sizeBytes,
+                etag,
+                contentType,
+                updatedAt);
     }
 }

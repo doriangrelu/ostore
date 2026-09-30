@@ -15,13 +15,13 @@
  */
 package io.github.doriangrelu.ostore.it.support;
 
+import io.github.doriangrelu.ostore.application.port.out.ObjectRepository;
 import io.github.doriangrelu.ostore.application.port.out.StorageDrivers;
 import io.github.doriangrelu.ostore.it.client.OStoreRestClient;
 import io.github.doriangrelu.ostore.it.client.ObjectRestClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * Application OStore complète démarrée sur un port aléatoire, appelée par de vrais clients HTTP.
@@ -38,7 +38,7 @@ abstract class IntegrationTest implements IntegrationScenario {
     private int port;
 
     @Autowired
-    private JdbcClient jdbc;
+    private ObjectRepository objectRepository;
 
     @Autowired
     private StorageDrivers drivers;
@@ -55,7 +55,7 @@ abstract class IntegrationTest implements IntegrationScenario {
 
     @Override
     public StorageProbe storage() {
-        return new StorageProbe(jdbc, drivers);
+        return new StorageProbe(objectRepository, drivers);
     }
 
     private String baseUrl() {

@@ -24,8 +24,17 @@ public final class ApiPaths {
     /** Collection des buckets. */
     public static final String BUCKETS = API_V1 + "/buckets";
 
-    /** Collection des objets d'un bucket ({@code {bucket}} = nom du bucket). */
-    public static final String OBJECTS = BUCKETS + "/{bucket}/objects";
+    /** Objets d'un bucket : dépôt et liste ({@code {bucket}} = nom du bucket). */
+    public static final String BUCKET_OBJECTS = BUCKETS + "/{bucket}/objects";
+
+    /** Un objet, désigné par son identifiant ({@code {id}}). */
+    public static final String OBJECT = API_V1 + "/objects/{id}";
+
+    /** Contenu binaire d'un objet. */
+    public static final String OBJECT_CONTENT = OBJECT + "/content";
+
+    /** Copie d'un objet. */
+    public static final String OBJECT_COPY = OBJECT + "/copy";
 
     private ApiPaths() {}
 }

@@ -25,7 +25,7 @@ import io.github.doriangrelu.ostore.domain.exception.ContentLengthMismatchExcept
 import io.github.doriangrelu.ostore.domain.exception.DomainException;
 import io.github.doriangrelu.ostore.domain.exception.InvalidBucketNameException;
 import io.github.doriangrelu.ostore.domain.exception.InvalidMetadataException;
-import io.github.doriangrelu.ostore.domain.exception.InvalidObjectKeyException;
+import io.github.doriangrelu.ostore.domain.exception.InvalidObjectNameException;
 import io.github.doriangrelu.ostore.domain.exception.ObjectNotFoundException;
 import io.github.doriangrelu.ostore.domain.exception.RangeNotSatisfiableException;
 import io.github.doriangrelu.ostore.driver.spi.exception.StorageException;
@@ -74,7 +74,7 @@ public class RestExceptionHandler {
     private static ErrorCode codeOf(DomainException exception) {
         return switch (exception) {
             case InvalidBucketNameException _ -> ErrorCode.INVALID_BUCKET_NAME;
-            case InvalidObjectKeyException _ -> ErrorCode.INVALID_OBJECT_KEY;
+            case InvalidObjectNameException _ -> ErrorCode.INVALID_OBJECT_NAME;
             case InvalidMetadataException _ -> ErrorCode.INVALID_METADATA;
             case ContentLengthMismatchException _ -> ErrorCode.CONTENT_LENGTH_MISMATCH;
             case BucketNotFoundException _ -> ErrorCode.BUCKET_NOT_FOUND;

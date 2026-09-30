@@ -20,9 +20,10 @@ import static java.util.stream.Collectors.toSet;
 
 import io.github.doriangrelu.ostore.domain.model.StoredObject;
 import io.github.doriangrelu.ostore.domain.model.vo.BlobLocation;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectMetadata;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -33,55 +34,68 @@ import org.springframework.data.relational.core.mapping.Table;
 
 /**
  * Ligne de la table {@code OST_OBJECT} et ses métadonnées (agrégat Spring Data JDBC). Une version nulle
- * signifie « nouvelle ligne à insérer ».
+ * signifie « nouvelle ligne à insérer » ; sinon la mise à jour vérifie la version (verrouillage optimiste).
  */
 @Table("OST_OBJECT")
 public record StoredObjectEntity(
         @Id UUID id,
         UUID bucketId,
-        String objectKey,
+        @Nullable String objectName,
         String driverId,
         String blobPath,
         long sizeBytes,
         String etag,
         String contentType,
         Instant createdAt,
+        Instant updatedAt,
         @MappedCollection(idColumn = "OBJECT_ID") Set<ObjectMetadataEntity> metadata,
         @Version @Nullable Long version) {
 
+    /** Nouvelle ligne à insérer. */
     public static StoredObjectEntity newRow(StoredObject object) {
-        var metadata = object.metadata().entries().entrySet().stream()
-                .map(entry -> new ObjectMetadataEntity(entry.getKey(), entry.getValue()))
-                .collect(toSet());
-        return new StoredObjectEntity(
-                object.id(),
-                object.bucketId(),
-                object.key().value(),
-                object.blob().driverId(),
-                object.blob().path(),
-                object.size(),
-                object.etag(),
-                object.contentType(),
-                object.createdAt(),
-                metadata,
-                null);
+        return of(object, null);
+    }
+
+    /** Mise à jour de cette ligne avec l'état de l'objet, à la version lue. */
+    public StoredObjectEntity updatedWith(StoredObject object) {
+        return of(object, version);
     }
 
     public StoredObject toDomain() {
         return new StoredObject(
                 id,
                 bucketId,
-                new ObjectKey(objectKey),
+                Optional.ofNullable(objectName).map(ObjectName::new).orElse(null),
                 blobLocation(),
                 sizeBytes,
                 etag,
                 contentType,
                 ObjectMetadata.of(
                         metadata.stream().collect(toMap(ObjectMetadataEntity::name, ObjectMetadataEntity::value))),
-                createdAt);
+                createdAt,
+                updatedAt);
     }
 
     public BlobLocation blobLocation() {
         return new BlobLocation(driverId, blobPath);
+    }
+
+    private static StoredObjectEntity of(StoredObject object, @Nullable Long version) {
+        var metadata = object.metadata().entries().entrySet().stream()
+                .map(entry -> new ObjectMetadataEntity(entry.getKey(), entry.getValue()))
+                .collect(toSet());
+        return new StoredObjectEntity(
+                object.id(),
+                object.bucketId(),
+                Optional.ofNullable(object.name()).map(ObjectName::value).orElse(null),
+                object.blob().driverId(),
+                object.blob().path(),
+                object.size(),
+                object.etag(),
+                object.contentType(),
+                object.createdAt(),
+                object.updatedAt(),
+                metadata,
+                version);
     }
 }

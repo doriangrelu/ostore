@@ -19,28 +19,27 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Représentation d'un objet (sans son contenu).
  *
- * @param resourceId identifiant de ressource
- * @param bucket nom du bucket
- * @param key clé de l'objet
+ * @param id identifiant de ressource, qui désigne l'objet dans toutes les opérations
+ * @param name nom libre, s'il a été fourni
  * @param size taille en octets
  * @param etag empreinte MD5 hexadécimale du contenu
  * @param contentType type MIME
- * @param lastModified date du dépôt (UTC)
- * @param metadata métadonnées utilisateur, triées par nom
+ * @param createdAt date de création (UTC)
+ * @param updatedAt date du dernier dépôt de contenu (UTC)
+ * @param metadata métadonnées utilisateur
  */
 @Schema(description = "Object (without its content)")
 public record ObjectResponse(
-        @Schema(description = "Resource identifier") UUID resourceId,
+        @Schema(description = "Resource identifier, used to address the object")
+        UUID id,
 
-        @Schema(description = "Bucket name", example = "invoices-2026")
-        String bucket,
-
-        @Schema(description = "Object key", example = "2026/09/invoice-42.pdf")
-        String key,
+        @Schema(description = "Free, optional name (not unique)", example = "invoice-42.pdf") @Nullable
+        String name,
 
         @Schema(description = "Size in bytes") long size,
 
@@ -50,7 +49,11 @@ public record ObjectResponse(
         @Schema(description = "MIME type", example = "application/pdf")
         String contentType,
 
-        @Schema(description = "Upload date (UTC)") Instant lastModified,
+        @Schema(description = "Creation date (UTC)") Instant createdAt,
+
+        @Schema(description = "Last content upload date (UTC)")
+        Instant updatedAt,
+
         @Schema(description = "User metadata") Map<String, String> metadata) {
 
     public ObjectResponse {

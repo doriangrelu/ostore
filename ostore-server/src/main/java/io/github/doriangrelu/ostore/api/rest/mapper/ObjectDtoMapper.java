@@ -25,12 +25,13 @@ import io.github.doriangrelu.ostore.contract.dto.ObjectSummaryResponse;
 import io.github.doriangrelu.ostore.domain.model.ObjectSummary;
 import io.github.doriangrelu.ostore.domain.model.StoredObject;
 import io.github.doriangrelu.ostore.domain.model.vo.BucketName;
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectMetadata;
-import java.util.Base64;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriUtils;
 
@@ -39,24 +40,37 @@ public final class ObjectDtoMapper {
 
     private ObjectDtoMapper() {}
 
-    public static ObjectResponse toResponse(BucketName bucket, StoredObject object) {
+    public static ObjectResponse toResponse(StoredObject object) {
         return new ObjectResponse(
                 object.id(),
-                bucket.value(),
-                object.key().value(),
+                nameOf(object.name()),
                 object.size(),
                 object.etag(),
                 object.contentType(),
                 object.createdAt(),
+                object.updatedAt(),
                 object.metadata().entries());
     }
 
-    public static ObjectListResponse toListResponse(BucketName bucket, String prefix, ObjectPage page) {
+    public static ObjectListResponse toListResponse(BucketName bucket, @Nullable String namePrefix, ObjectPage page) {
         return new ObjectListResponse(
                 bucket.value(),
-                prefix,
+                namePrefix,
                 page.objects().stream().map(ObjectDtoMapper::toSummary).toList(),
-                page.lastKey().map(ObjectDtoMapper::toContinuationToken).orElse(null));
+                page.lastId().map(UUID::toString).orElse(null));
+    }
+
+    /** Nom optionnel reçu en paramètre ; une valeur vide équivaut à une absence. */
+    public static @Nullable ObjectName toName(@Nullable String name) {
+        return Optional.ofNullable(name)
+                .filter(value -> !value.isEmpty())
+                .map(ObjectName::new)
+                .orElse(null);
+    }
+
+    /** Point de reprise porté par un jeton de continuation (identifiant du dernier objet de la page). */
+    public static Optional<UUID> fromContinuationToken(@Nullable String token) {
+        return Optional.ofNullable(token).filter(value -> !value.isBlank()).map(UUID::fromString);
     }
 
     /**
@@ -70,37 +84,37 @@ public final class ObjectDtoMapper {
                 headers.stream().map(ObjectDtoMapper::decodeValue).toList());
     }
 
-    /** En-têtes de réponse décrivant un objet servi en contenu. */
+    /** En-têtes de réponse décrivant un objet servi en contenu ; le nom devient le nom de fichier proposé. */
     public static HttpHeaders contentHeaders(StoredObject object) {
         var headers = new HttpHeaders();
         headers.setETag("\"" + object.etag() + "\"");
-        headers.setLastModified(object.createdAt());
+        headers.setLastModified(object.updatedAt());
         headers.set(HttpHeaders.CONTENT_TYPE, object.contentType());
         headers.set(HttpHeaders.ACCEPT_RANGES, "bytes");
         headers.set(OStoreHeaders.RESOURCE_ID, object.id().toString());
+        if (object.name() != null) {
+            headers.setContentDisposition(ContentDisposition.attachment()
+                    .filename(object.name().value(), UTF_8)
+                    .build());
+        }
         object.metadata()
                 .entries()
                 .forEach((name, value) -> headers.add(OStoreHeaders.META, name + "=" + UriUtils.encode(value, UTF_8)));
         return headers;
     }
 
-    /** Jeton de continuation : dernière clé de la page, en base64url. */
-    public static String toContinuationToken(ObjectKey lastKey) {
-        return Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(lastKey.value().getBytes(UTF_8));
-    }
-
-    /** Clé de reprise portée par un jeton de continuation. */
-    public static Optional<ObjectKey> fromContinuationToken(@Nullable String token) {
-        return Optional.ofNullable(token)
-                .filter(value -> !value.isBlank())
-                .map(value -> new ObjectKey(new String(Base64.getUrlDecoder().decode(value), UTF_8)));
-    }
-
     private static ObjectSummaryResponse toSummary(ObjectSummary summary) {
         return new ObjectSummaryResponse(
-                summary.key().value(), summary.size(), summary.etag(), summary.contentType(), summary.createdAt());
+                summary.id(),
+                nameOf(summary.name()),
+                summary.size(),
+                summary.etag(),
+                summary.contentType(),
+                summary.updatedAt());
+    }
+
+    private static @Nullable String nameOf(@Nullable ObjectName name) {
+        return name != null ? name.value() : null;
     }
 
     private static String decodeValue(String header) {

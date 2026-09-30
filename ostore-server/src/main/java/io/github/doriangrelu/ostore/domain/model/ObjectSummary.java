@@ -15,16 +15,20 @@
  */
 package io.github.doriangrelu.ostore.domain.model;
 
-import io.github.doriangrelu.ostore.domain.model.vo.ObjectKey;
+import io.github.doriangrelu.ostore.domain.model.vo.ObjectName;
 import java.time.Instant;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Vue allégée d'un objet, pour les listes (sans métadonnées ni emplacement physique).
  *
- * @param key clé de l'objet
+ * @param id identifiant de ressource
+ * @param name nom libre, s'il existe
  * @param size taille en octets
  * @param etag empreinte MD5 hexadécimale
  * @param contentType type MIME
- * @param createdAt date de dépôt
+ * @param updatedAt date du dernier dépôt de contenu
  */
-public record ObjectSummary(ObjectKey key, long size, String etag, String contentType, Instant createdAt) {}
+public record ObjectSummary(
+        UUID id, @Nullable ObjectName name, long size, String etag, String contentType, Instant updatedAt) {}
