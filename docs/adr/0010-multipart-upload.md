@@ -20,10 +20,10 @@ Le multipart découpe l'envoi en parties indépendantes, qu'on peut reprendre et
 
 | Opération | Requête | Réponse |
 |---|---|---|
-| Démarrer | `POST /uploads` — JSON : clé, type de contenu, métadonnées, transaction éventuelle | `uploadId`, `resourceId`, `transactionId` |
+| Démarrer | `POST /uploads` — JSON : nom (optionnel), type de contenu, métadonnées, transaction éventuelle | `uploadId`, `id` de l'objet, `transactionId` |
 | Envoyer une partie | `PUT /uploads/{uploadId}/parts/{partNumber}` — corps binaire en flux | numéro, taille, ETag de la partie |
 | Lister les parties | `GET /uploads/{uploadId}/parts` | parties reçues (pour reprendre l'envoi) |
-| Finaliser | `POST /uploads/{uploadId}/complete` — JSON : liste ordonnée (numéro, ETag) | objet créé (id, clé, ETag, transaction) |
+| Finaliser | `POST /uploads/{uploadId}/complete` — JSON : liste ordonnée (numéro, ETag) | objet créé (id, nom, ETag, transaction) |
 | Abandonner | `DELETE /uploads/{uploadId}` | `204` |
 
 Règles (configurables) : parties numérotées de 1 à 10 000, **5 Mio minimum** sauf la dernière.

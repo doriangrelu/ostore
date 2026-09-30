@@ -44,7 +44,8 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
    - Instructions séparées au maximum : tables → index → contraintes PK/UK → FK → synonymes/grants.
    - Indexer systématiquement (FK, colonnes de filtre, de tri, de purge).
 8. **Persistance** : Spring Data JDBC (ADR-0004), entités de persistance séparées du domaine.
-9. **Objets en attente** : invisibles sauf via `resourceId` ou en-tête `x-ostore-transaction-id` (ADR-0009).
+9. **Objets désignés par leur identifiant** (ADR-0015) : `/api/v1/objects/{id}` (UUID v7), jamais par un chemin ;
+   le nom est libre, optionnel et non unique. Objets en attente absents des listes, lisibles par leur id (ADR-0009).
 10. **API JSON uniquement** (ADR-0014) : pas de XML, pas de protocole S3 ni de SigV4 ; tout passe par le contrat.
     **Authentification** : décision reportée au jalon M5 (ADR-0008).
     **Multipart** : en v1, **non systématique** : uniquement si le client l'initie, désactivable ;
