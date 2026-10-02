@@ -57,7 +57,7 @@
         <!-- Versions non gérées par Spring Boot -->
         <springdoc.version>3.1.1</springdoc.version>
         <archunit.version>1.5.1</archunit.version>
-        <aws-sdk.version>2.55.5</aws-sdk.version>
+        <aws-sdk.version>2.55.8</aws-sdk.version>
         <!-- Aligné sur la version utilisée par springdoc -->
         <swagger-annotations.version>2.2.55</swagger-annotations.version>
         <!-- Plugins qualité (T0.4) -->
