@@ -77,6 +77,8 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
     défaut, 24 h max ; toute écriture transactionnelle verrouille la transaction (`FOR UPDATE`) via le port `UnitOfWork`.
 21. **Console d'administration** (ADR-0017) : SPA Vue 3 + Vite dans le module `ostore-console`, cliente de la seule
     API publique (client TypeScript généré depuis l'OpenAPI), désactivable (`ostore.console.enabled`, `false` par défaut).
+    Composants façon shadcn (shadcn-vue + Reka UI + Tailwind, code dans le dépôt), **pas de PrimeVue** ;
+    dépendances front sous licence permissive uniquement (MIT, ISC, Apache 2.0, BSD).
 
 ## Skills projet (`.claude/skills/`)
 

@@ -1,7 +1,7 @@
 # ADR-0017 — Console d'administration
 
 - Statut : **Proposé** (choix utilisateur du 2026-09-30 : Vue 3 + Vite, consultation et actions, console avant
-  la sécurité). Le design détaillé attend la validation de T4.1.
+  la sécurité ; 2026-10-12 : composants façon shadcn, pas de PrimeVue). Le design détaillé attend la validation de T4.1.
 
 ## Contexte
 Les exploitants veulent consulter et administrer les buckets, les objets et les transactions sans écrire
@@ -16,8 +16,13 @@ d'appels HTTP. OStore n'expose qu'une API JSON (ADR-0014) et n'est pas authentif
 - Client TypeScript **généré** depuis la spécification OpenAPI (`openapi-typescript` + `openapi-fetch` :
   types seuls, sans runtime lourd). La spécification reste générée depuis le contrat (ADR-0003) : elle est
   versionnée dans `ostore-console` et un TI échoue si elle ne correspond plus au contrat.
-- Bibliothèque de composants : **PrimeVue** (tables paginées, formulaires, boîtes de dialogue) ;
-  `vue-router` en mode *history*. Pas de store global tant qu'il n'est pas nécessaire.
+- Composants à la manière de **shadcn** (équivalent Vue de spartan/ui) : **shadcn-vue** copie le code des
+  composants **dans le dépôt**, qui nous appartient et que l'on adapte librement. Ils reposent sur les primitives
+  sans style de **Reka UI** (accessibilité : clavier, focus, ARIA) et sur **Tailwind CSS** ; icônes **Lucide**.
+  Aucune dépendance à une bibliothèque de composants packagée. `vue-router` en mode *history* ; pas de store
+  global tant qu'il n'est pas nécessaire.
+- **Licences** : toute dépendance du front doit être sous licence permissive compatible Apache 2.0 (MIT, ISC,
+  Apache 2.0, BSD) et sans offre commerciale imposée pour les fonctions utilisées.
 
 ### 2. Un module dédié, retirable (ADR-0002)
 - Module `ostore-console` : les sources dans `src/main/frontend`, compilées par Maven via
@@ -65,6 +70,10 @@ Ils servent à tous les clients, pas seulement à la console :
   documentation le rappelle. Le jalon sécurité couvrira l'API **et** la console.
 
 ## Options écartées
+- **PrimeVue** : écartée par l'utilisateur à cause de sa politique de licence (thèmes et blocs commerciaux).
+- **Composants entièrement faits main** : on garde la maîtrise du code avec shadcn-vue, sans réécrire
+  l'accessibilité des composants interactifs (dialogues, menus, listes déroulantes).
+- **spartan/ui** : même approche, mais pour Angular.
 - **Thymeleaf + htmx** : pas de Node, mais la console appellerait le backend en direct au lieu de consommer
   l'API publique.
 - **Angular / React** : équivalents ; Vue 3 est retenu par l'utilisateur pour sa légèreté.
