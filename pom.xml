@@ -59,7 +59,7 @@
         <archunit.version>1.5.1</archunit.version>
         <aws-sdk.version>2.55.5</aws-sdk.version>
         <!-- Aligné sur la version utilisée par springdoc -->
-        <swagger-annotations.version>2.2.55</swagger-annotations.version>
+        <swagger-annotations.version>2.2.56</swagger-annotations.version>
         <!-- Plugins qualité (T0.4) -->
         <spotless.version>3.10.2</spotless.version>
         <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
