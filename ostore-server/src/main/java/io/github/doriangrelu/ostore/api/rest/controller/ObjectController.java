@@ -99,6 +99,8 @@ public class ObjectController implements ObjectApi {
     public ResponseEntity<Resource> content(UUID id, @Nullable String range, @Nullable UUID transactionId) {
         var content = objects.open(id, RangeRequest.parse(range), transactionId);
         var headers = contentHeaders(content.object());
+        // InputStreamResource exactement, jamais une sous-classe : Spring ne réinterprète alors pas un en-tête
+        // Range que nous avons ignoré, ce qui lui ferait lire tout le flux pour en mesurer la taille.
         Resource body = new InputStreamResource(content.stream());
         return content.range()
                 .map(served -> ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)

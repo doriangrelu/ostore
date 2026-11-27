@@ -96,6 +96,16 @@ public interface ObjectScenarios extends IntegrationScenario {
                 .extracting(Problem::status, Problem::code)
                 .containsExactly(416, "RANGE_NOT_SATISFIABLE");
 
+        // And : une plage ignorée (plusieurs plages, plage inversée) sert le contenu complet en un seul passage
+        for (var ignored : new String[] {"bytes=0-1,5-9", "bytes=9-5"}) {
+            var whole = objects().content(stored.id(), ignored);
+            assertThat(whole.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(whole.getHeaders().getContentLength()).isEqualTo(INVOICE.length);
+            try (var body = whole.getBody().getInputStream()) {
+                assertThat(body.readAllBytes()).isEqualTo(INVOICE);
+            }
+        }
+
         // When : l'objet est supprimé
         objects().delete(stored.id());
 

@@ -43,7 +43,7 @@ confirmer » le seront par un test avant correction.
 
 | # | Défaut | Où | Correctif proposé |
 |---|---|---|---|
-| C1 | `Range` ignoré (multi-plages, inversé) : Spring applique sa propre gestion des plages à la réponse `200` et lit tout le flux pour en mesurer la taille (amplification). À confirmer par TI. | `ObjectController.java:99-114` | Rejeter ou servir sans `Resource` lisible une seule fois ; TI multi-plages |
+| C1 | ~~`Range` ignoré : Spring lirait tout le flux pour en mesurer la taille.~~ **Faux positif** (T3b.1) : Spring exclut `InputStreamResource` de sa gestion des plages ; un TI le garde. | `ObjectController.java:99-114` | Rejeter ou servir sans `Resource` lisible une seule fois ; TI multi-plages |
 | C2 | Verrou de l'objet en « vérifier puis agir » : remplacement hors transaction concurrent d'une mise en attente → écrasé au commit ; violations UK/FK servies en 500. | `ObjectService.java:172-215` | `SELECT … FOR UPDATE` sur la ligne visée, `delete` en `UnitOfWork` |
 | C3 | Téléchargement S3 interrompu : `close()` vide tout le reste de l'objet. | `S3StorageDriver.java:70-81` | `abort()` si le flux n'est pas épuisé |
 | C4 | Valeur de métadonnée vide : 201 sur PostgreSQL, 500 sur Oracle (`''` = `NULL`, colonne `NOT NULL`). | `ObjectMetadata.java:79` | Règle unique dans le domaine ; TI sur les deux SGBD |
