@@ -63,7 +63,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Écritures transactionnelles (ADR-0016) : la transaction rejointe est vérifiée avant d'écrire le blob (échec
  * rapide), puis <b>verrouillée</b> au moment d'enregistrer l'objet, pour qu'aucune écriture ne la rejoigne
- * pendant sa clôture.
+ * pendant sa clôture. Un objet en attente n'est remplacé, supprimé ni copié que dans sa propre transaction : le
+ * validateur valide exactement ce qu'il a pu inspecter.
  */
 public final class ObjectService implements ObjectUseCases {
 
@@ -112,6 +113,7 @@ public final class ObjectService implements ObjectUseCases {
     @Override
     public StoredObject replace(ReplaceObjectCommand command) {
         var target = get(command.id(), null);
+        ensureReplaceable(target, command.transaction());
         checkBeforeWriting(command.transaction());
         var now = clock.instant();
         var content = writeContent(
@@ -121,7 +123,9 @@ public final class ObjectService implements ObjectUseCases {
 
     @Override
     public StoredObject copy(CopyObjectCommand command) {
-        var source = get(command.sourceId(), null);
+        // Dans une transaction, la source est lue comme une lecture avec cette transaction : sa version en attente.
+        var source = get(command.sourceId(), joinedTransaction(command.transaction()));
+        ensureOwnedBy(source, command.transaction());
         var target = Optional.ofNullable(command.targetBucket()).map(this::bucketOf);
         var bucketId = target.map(Bucket::id).orElse(source.bucketId());
         var driverId = target.map(Bucket::driverId).orElse(source.blob().driverId());
@@ -169,12 +173,22 @@ public final class ObjectService implements ObjectUseCases {
     }
 
     @Override
-    public void delete(UUID id) {
+    public void delete(UUID id, @Nullable UUID transactionId) {
         var object = get(id, null);
+        ensureOwnedBy(object, TransactionMode.of(transactionId, null));
         objects.findPendingReplacement(id).ifPresent(replacement -> {
             throw new ObjectLockedException(id, Objects.requireNonNull(replacement.transactionId()));
         });
-        objects.delete(object);
+        if (!object.isPending()) {
+            objects.delete(object);
+            return;
+        }
+        // Retirer un objet de sa transaction exige qu'elle soit ouverte, et verrouillée contre sa clôture.
+        unitOfWork.execute(() -> {
+            lockOpen(Objects.requireNonNull(object.transactionId()), clock.instant());
+            objects.delete(object);
+            return object;
+        });
     }
 
     /**
@@ -190,13 +204,8 @@ public final class ObjectService implements ObjectUseCases {
     private StoredObject replaceLocked(ReplaceObjectCommand command, StoredObject.Content content, Instant now) {
         var current = objects.find(command.id()).orElseThrow(() -> new ObjectNotFoundException(command.id()));
         if (current.isPending()) {
-            var ownTransaction = Objects.requireNonNull(current.transactionId());
-            var requested = command.transaction();
-            if (requested instanceof TransactionMode.Pending
-                    || (requested instanceof TransactionMode.Join(UUID joined) && !joined.equals(ownTransaction))) {
-                throw new ObjectLockedException(current.id(), ownTransaction);
-            }
-            lockOpen(ownTransaction, now);
+            ensureOwnedBy(current, command.transaction());
+            lockOpen(Objects.requireNonNull(current.transactionId()), now);
             return objects.replace(current.withContent(content, command.name(), command.metadata(), now));
         }
         var pending = objects.findPendingReplacement(current.id());
@@ -216,6 +225,33 @@ public final class ObjectService implements ObjectUseCases {
         }
         return objects.insert(
                 current.pendingReplacement(content, command.name(), command.metadata(), transactionId, now));
+    }
+
+    /**
+     * Un objet en attente n'est accessible en écriture que dans sa propre transaction (ADR-0016) ; un objet validé
+     * l'est toujours.
+     *
+     * @throws ObjectLockedException si l'objet attend la validation d'une autre transaction que celle demandée
+     */
+    private static void ensureOwnedBy(StoredObject object, TransactionMode mode) {
+        var owner = object.transactionId();
+        if (object.isPending() && !Objects.equals(joinedTransaction(mode), owner)) {
+            throw new ObjectLockedException(object.publicId(), Objects.requireNonNull(owner));
+        }
+    }
+
+    /**
+     * Échec rapide avant d'envoyer le contenu d'un remplacement : l'objet visé, et son éventuel remplacement en
+     * attente, doivent appartenir à la transaction demandée. Revérifié sous verrou à l'enregistrement.
+     */
+    private void ensureReplaceable(StoredObject target, TransactionMode mode) {
+        ensureOwnedBy(target, mode);
+        objects.findPendingReplacement(target.id()).ifPresent(replacement -> ensureOwnedBy(replacement, mode));
+    }
+
+    /** Transaction rejointe par l'écriture, {@code null} hors transaction ou en transaction implicite. */
+    private static @Nullable UUID joinedTransaction(TransactionMode mode) {
+        return mode instanceof TransactionMode.Join(UUID id) ? id : null;
     }
 
     /** Échec rapide avant d'écrire un blob : transaction rejointe ouverte, durée demandée valide. */

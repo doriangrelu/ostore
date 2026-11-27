@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import io.github.doriangrelu.ostore.contract.dto.CopyObjectRequest;
 import io.github.doriangrelu.ostore.contract.dto.CreateBucketRequest;
 import io.github.doriangrelu.ostore.contract.dto.ExtendTransactionRequest;
 import io.github.doriangrelu.ostore.contract.dto.ObjectStatus;
@@ -61,8 +62,8 @@ public interface TransactionScenarios extends IntegrationScenario {
         assertThat(objects().list(invoices, null, 1000, null).objects()).isEmpty();
         assertThat(objects().read(invoice.id())).isEqualTo(V1);
 
-        // And : un objet en attente peut être retiré de la transaction
-        objects().delete(discarded.id());
+        // And : un objet en attente peut être retiré de sa transaction
+        objects().delete(discarded.id(), transaction.id());
         assertThat(transactions().get(transaction.id()).objectCount()).isEqualTo(2);
         assertThat(transactions().objects(transaction.id(), 1000, null).objects())
                 .extracting(ObjectSummaryResponse::id)
@@ -179,6 +180,71 @@ public interface TransactionScenarios extends IntegrationScenario {
         await().atMost(TIMEOUT).until(() -> !storage().exists(originalBlob));
         objects().replace(document.id(), "text/plain", V1);
         transactions().rollback(other.id());
+    }
+
+    @Test
+    default void should_reserve_a_pending_object_to_its_transaction() {
+        var bucket = newBucket();
+        var transaction = transactions().open(Duration.ofMinutes(5));
+        var other = transactions().open(Duration.ofMinutes(5));
+        var scan = objects().createIn(transaction.id(), bucket, "scan.pdf", V1);
+        var sameBucket = new CopyObjectRequest(null, null);
+
+        // Then : hors de sa transaction, l'objet en attente ne se remplace, ne se supprime ni ne se copie
+        assertThat(List.<Runnable>of(
+                        () -> objects().replace(scan.id(), "text/plain", V2),
+                        () -> objects().replaceIn(other.id(), scan.id(), V2),
+                        () -> objects().replacePending(scan.id(), V2, "PT5M"),
+                        () -> objects().delete(scan.id()),
+                        () -> objects().delete(scan.id(), other.id()),
+                        () -> objects().copy(scan.id(), sameBucket),
+                        () -> objects().copyIn(other.id(), scan.id(), sameBucket),
+                        () -> objects().copy(scan.id(), null, "PT5M", sameBucket)))
+                .allSatisfy(write -> assertThat(problemOf(write::run).code()).isEqualTo("OBJECT_LOCKED"));
+        assertThat(objects().read(scan.id())).isEqualTo(V1);
+
+        // When : la transaction corrige l'objet, puis le copie
+        objects().replaceIn(transaction.id(), scan.id(), V2);
+        var copy = objects().copyIn(transaction.id(), scan.id(), sameBucket);
+
+        // Then : la copie est en attente dans la même transaction, avec le contenu corrigé
+        assertThat(copy.status()).isEqualTo(ObjectStatus.PENDING);
+        assertThat(copy.transactionId()).isEqualTo(transaction.id());
+        assertThat(objects().read(copy.id())).isEqualTo(V2);
+
+        // When : la transaction est annulée
+        transactions().rollback(transaction.id());
+
+        // Then : l'objet et sa copie disparaissent ensemble
+        assertThat(problemOf(() -> objects().metadata(scan.id())).code()).isEqualTo("OBJECT_NOT_FOUND");
+        assertThat(problemOf(() -> objects().metadata(copy.id())).code()).isEqualTo("OBJECT_NOT_FOUND");
+        transactions().rollback(other.id());
+    }
+
+    @Test
+    default void should_copy_the_pending_version_within_its_transaction() {
+        var bucket = newBucket();
+        var document = objects().create(bucket, "contract.pdf", "application/pdf", V1);
+        var transaction = transactions().open(Duration.ofMinutes(5));
+        objects().replaceIn(transaction.id(), document.id(), V2);
+        var sameBucket = new CopyObjectRequest(null, null);
+
+        // When : l'objet est copié hors transaction, puis dans la transaction du remplacement
+        var committedCopy = objects().copy(document.id(), sameBucket);
+        var stagedCopy = objects().copyIn(transaction.id(), document.id(), sameBucket);
+
+        // Then : hors transaction, la version validée ; dans la transaction, la version en attente
+        assertThat(committedCopy.status()).isEqualTo(ObjectStatus.ACTIVE);
+        assertThat(objects().read(committedCopy.id())).isEqualTo(V1);
+        assertThat(stagedCopy.status()).isEqualTo(ObjectStatus.PENDING);
+        assertThat(objects().read(stagedCopy.id())).isEqualTo(V2);
+
+        // When : la transaction est validée
+        transactions().commit(transaction.id());
+
+        // Then : l'objet et sa copie portent la nouvelle version
+        assertThat(objects().read(document.id())).isEqualTo(V2);
+        assertThat(objects().metadata(stagedCopy.id()).status()).isEqualTo(ObjectStatus.ACTIVE);
     }
 
     @Test

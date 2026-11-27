@@ -89,9 +89,12 @@ public interface ObjectUseCases {
     ObjectPage list(BucketName bucket, @Nullable String namePrefix, Optional<UUID> after, int limit);
 
     /**
-     * Supprime un objet ; son blob est purgé ensuite.
+     * Supprime un objet ; son blob est purgé ensuite. Un objet en attente ne se supprime que dans sa transaction,
+     * qui doit être ouverte (ADR-0016). Un objet validé est supprimé immédiatement, la transaction étant ignorée.
      *
-     * @throws ObjectLockedException si un remplacement de l'objet est en attente
+     * @param transactionId transaction de l'appelant ({@code X-OStore-Transaction-Id}), {@code null} = aucune
+     * @throws ObjectLockedException si un remplacement de l'objet est en attente, ou si l'objet est en attente
+     *     d'une autre transaction que celle de l'appelant
      */
-    void delete(UUID id);
+    void delete(UUID id, @Nullable UUID transactionId);
 }

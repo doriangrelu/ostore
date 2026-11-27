@@ -249,9 +249,28 @@ public final class ObjectRestClient implements ObjectApi {
         return copy(id, null, null, request);
     }
 
+    /** Raccourci : remplacement dans une transaction implicite créée pour lui seul. */
+    public ObjectResponse replacePending(UUID id, byte[] content, String ttl) {
+        return replace(id, null, content.length, "text/plain", null, null, ttl, inMemory(content));
+    }
+
+    /** Raccourci : copie dans une transaction existante. */
+    public ObjectResponse copyIn(UUID transactionId, UUID id, CopyObjectRequest request) {
+        return copy(id, transactionId, null, request);
+    }
+
     @Override
+    public void delete(UUID id, @Nullable UUID transactionId) {
+        http.delete()
+                .uri(ApiPaths.OBJECT, id)
+                .headers(headers -> transactionHeader(headers, transactionId))
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    /** Raccourci : suppression hors transaction. */
     public void delete(UUID id) {
-        http.delete().uri(ApiPaths.OBJECT, id).retrieve().toBodilessEntity();
+        delete(id, null);
     }
 
     private static void writeHeaders(

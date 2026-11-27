@@ -187,7 +187,9 @@ public interface ObjectApi {
     @Operation(summary = "Copy an object into a new object")
     @ApiResponse(responseCode = "201", description = "Copy stored, new identifier returned")
     @ApiResponse(responseCode = "404", description = "OBJECT_NOT_FOUND, BUCKET_NOT_FOUND, TRANSACTION_NOT_FOUND")
-    @ApiResponse(responseCode = "409", description = "TRANSACTION_CLOSED")
+    @ApiResponse(
+            responseCode = "409",
+            description = "TRANSACTION_CLOSED, OBJECT_LOCKED (pending source outside its transaction)")
     @PostMapping(path = ApiPaths.OBJECT_COPY, consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     ObjectResponse copy(
@@ -202,12 +204,25 @@ public interface ObjectApi {
                     String pendingTtl,
             @Valid @RequestBody CopyObjectRequest request);
 
-    /** Supprime un objet ; son contenu est purgé ensuite. */
+    /**
+     * Supprime un objet ; son contenu est purgé ensuite. Un objet en attente ne se supprime que dans sa transaction
+     * (ADR-0016). Sur un objet validé, l'en-tête de transaction est sans effet : la suppression est immédiate.
+     */
     @Operation(summary = "Delete an object")
     @ApiResponse(responseCode = "204", description = "Object deleted")
     @ApiResponse(responseCode = "404", description = "OBJECT_NOT_FOUND")
-    @ApiResponse(responseCode = "409", description = "OBJECT_LOCKED (a replacement is pending)")
+    @ApiResponse(
+            responseCode = "409",
+            description = "OBJECT_LOCKED (a replacement is pending, or a pending object outside its transaction), "
+                    + "TRANSACTION_CLOSED")
     @DeleteMapping(ApiPaths.OBJECT)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void delete(@PathVariable("id") UUID id);
+    void delete(
+            @PathVariable("id") UUID id,
+            @Parameter(
+                            description = "Transaction of the pending object to delete; ignored for an active object, "
+                                    + "which is deleted immediately")
+                    @RequestHeader(value = OStoreHeaders.TRANSACTION_ID, required = false)
+                    @Nullable
+                    UUID transactionId);
 }

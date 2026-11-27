@@ -148,8 +148,8 @@ public class ObjectController implements ObjectApi {
     }
 
     @Override
-    public void delete(UUID id) {
-        objects.delete(id);
+    public void delete(UUID id, @Nullable UUID transactionId) {
+        objects.delete(id, transactionId);
     }
 
     private static InputStream open(InputStreamResource content) {
