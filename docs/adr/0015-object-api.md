@@ -2,6 +2,8 @@
 
 - Statut : **Accepté** (jalon M2, validé par l'utilisateur le 2026-09-30). Révisé le 2026-09-30 : les
   objets sont désignés par leur **identifiant**, la clé devient un **nom libre** (demande utilisateur).
+  Révisé le 2026-11-27 (décision de l'utilisateur après la revue indépendante) : le contenu est toujours servi
+  en pièce jointe, avec `nosniff` et une CSP `sandbox` ; un `Range` ignoré ne relit jamais le contenu.
 
 ## Contexte
 Une API JSON unique (ADR-0014), des fichiers de plusieurs Go à mémoire bornée (ADR-0003), un contrat
@@ -43,10 +45,20 @@ modifiée à chaque remplacement.
 
 ### 3. Lecture en flux
 - La réponse porte `Content-Length`, `Content-Type`, `ETag`, `Last-Modified`, `Accept-Ranges: bytes`,
-  `X-OStore-Resource-Id`, `Content-Disposition` (si l'objet a un nom) et les `X-OStore-Meta`.
+  `X-OStore-Resource-Id`, `Content-Disposition` et les `X-OStore-Meta`.
+- **Jamais affiché par le navigateur** (révision du 2026-11-27) : le `Content-Type` est choisi par le client
+  qui dépose, et un contenu HTML ou SVG servi en ligne exécuterait son script sur l'origine de l'API, qui est
+  aussi celle de la console (ADR-0017). Le contenu est donc toujours servi avec :
+  - `Content-Disposition: attachment`, le nom de l'objet comme nom de fichier, ou son identifiant s'il n'en a
+    pas ;
+  - `X-Content-Type-Options: nosniff` ;
+  - `Content-Security-Policy: sandbox; default-src 'none'`.
 - **`Range` (RFC 9110)** : une seule plage (`a-b`, `a-`, `-n`) → `206` + `Content-Range`, lue directement
   dans le driver. Plusieurs plages → contenu complet en `200` (autorisé par la RFC). Plage hors limites →
   `416`.
+- Un `Range` ignoré (plusieurs plages, plage inversée, autre unité) ne doit pas être réinterprété par le
+  framework : le contenu complet est servi en un seul passage, sans relire le flux pour en mesurer la taille
+  (révision du 2026-11-27).
 
 ### 4. Liste
 Pagination par curseur (*keyset*) sur l'identifiant : un UUID v7 étant chronologique, l'ordre est celui des

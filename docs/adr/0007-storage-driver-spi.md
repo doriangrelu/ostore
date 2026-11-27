@@ -1,6 +1,6 @@
 # ADR-0007 — SPI des drivers de stockage
 
-- Statut : **Accepté**
+- Statut : **Accepté**. Complété le 2026-11-27 par ADR-0018 : copie native optionnelle (méthode par défaut).
 
 ## Décision
 - Module agrégateur `ostore-drivers`, un sous-module par driver (`ostore-driver-<type>`).

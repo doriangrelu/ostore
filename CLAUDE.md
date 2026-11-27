@@ -45,7 +45,8 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
    - Indexer systématiquement (FK, colonnes de filtre, de tri, de purge).
 8. **Persistance** : Spring Data JDBC (ADR-0004), entités de persistance séparées du domaine.
 9. **Objets désignés par leur identifiant** (ADR-0015) : `/api/v1/objects/{id}` (UUID v7), jamais par un chemin ;
-   le nom est libre, optionnel et non unique. Objets en attente absents des listes, lisibles par leur id (ADR-0009).
+   le nom est libre, optionnel et non unique. Objets en attente absents des listes, lisibles par leur id (ADR-0009),
+   remplacés, supprimés ou copiés **seulement dans leur transaction** (ADR-0016, révision du 2026-11-27).
 10. **API JSON uniquement** (ADR-0014) : pas de XML, pas de protocole S3 ni de SigV4 ; tout passe par le contrat.
     **Authentification** : décision reportée au jalon M5 « Sécurité » (ADR-0008).
     **Multipart** : en v1, **non systématique** : uniquement si le client l'initie, désactivable ;
@@ -74,7 +75,9 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
     (`ostore.storage.drivers.<id>.layout`) ou imposée par le driver, et **stocké en base** (`BLOB_PATH`).
 20. **Transactions** (ADR-0016) : création, copie **et** remplacement acceptent `X-OStore-Transaction-Id`
     (rejoindre) ou `X-OStore-Pending-Ttl` (transaction implicite) ; commit/rollback idempotents ; TTL 15 min par
-    défaut, 24 h max ; toute écriture transactionnelle verrouille la transaction (`FOR UPDATE`) via le port `UnitOfWork`.
+    défaut, 24 h max ; toute écriture transactionnelle verrouille la transaction (`FOR UPDATE`) via le port `UnitOfWork`,
+    remplacement et suppression verrouillent aussi la ligne de l'objet visé ; une erreur ne cite jamais l'id d'une
+    transaction.
 21. **Console d'administration** (ADR-0017) : SPA Vue 3 + Vite dans le module `ostore-console`, cliente de la seule
     API publique (client TypeScript généré depuis l'OpenAPI), désactivable (`ostore.console.enabled`, `false` par défaut).
     Composants façon shadcn (shadcn-vue + Reka UI + Tailwind, code dans le dépôt), **pas de PrimeVue** ;
@@ -120,6 +123,10 @@ Dépôt : `git@github.com:doriangrelu/ostore.git`.
 
 - **Gros fichiers (plusieurs Go)** : jamais de fichier entier en mémoire, streaming de bout en bout
   (`InputStream`), ni `byte[]` ni `MultipartFile` pour les contenus ; mémoire bornée vérifiée par test.
+  Taille bornée par `ostore.limits.max-object-size` (`413` avant écriture) ; au-delà d'un seuil, le driver S3
+  passe en multipart natif (ADR-0018).
+- **Contenu servi** toujours en `attachment`, avec `nosniff` et CSP `sandbox` : jamais affiché par le
+  navigateur sur l'origine de l'API et de la console (ADR-0015 §3).
 - Transactions prolongeables (`/extend`) dans la limite de `max-ttl` (ADR-0006).
 - Migrations exécutables par l'application **ou** rendues en SQL pour les DBA (ADR-0005).
 - La base est la source de vérité ; le stockage physique est nettoyé de façon asynchrone et idempotente.

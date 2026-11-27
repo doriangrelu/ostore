@@ -1,6 +1,9 @@
 # ADR-0016 — API des transactions
 
 - Statut : **Accepté** (design validé par l'utilisateur le 2026-09-30). Précise ADR-0006 et ADR-0009.
+  Révisé le 2026-11-27 (décisions de l'utilisateur après la revue indépendante) : un objet `PENDING` ne se
+  remplace, ne se supprime ni ne se copie hors de sa transaction ; l'identifiant de transaction n'est plus
+  cité dans les erreurs ; la ligne de l'objet visé est verrouillée.
 
 ## Contexte
 Un fichier peut être déposé « en attente » et n'est conservé que si un autre micro-service valide la
@@ -52,8 +55,23 @@ qui remplace la première décision « interdit en v1 ») :
 - tant qu'un remplacement est en attente, l'objet visé ne peut être ni remplacé hors transaction ni supprimé
   (`409 OBJECT_LOCKED`) ; un nouveau remplacement dans **la même** transaction met à jour la version en attente.
 
-Remplacer un objet `PENDING` (nouvel objet d'une transaction) : il est corrigé sur place et reste dans sa
-transaction, qui doit être ouverte ; une autre transaction → `409 OBJECT_LOCKED`.
+### Objets `PENDING` : réservés à leur transaction (révision du 2026-11-27)
+Un objet `PENDING` (nouvel objet d'une transaction) n'est modifiable que **dans sa transaction** : le
+validateur doit pouvoir valider exactement ce qu'il a inspecté.
+- **Remplacer** : `X-OStore-Transaction-Id` égal à sa transaction, qui doit être ouverte ; il est alors corrigé
+  sur place et reste dans sa transaction. Sans en-tête, avec une autre transaction ou avec
+  `X-OStore-Pending-Ttl` → `409 OBJECT_LOCKED`.
+- **Supprimer** : même règle ; sans l'en-tête de sa transaction → `409 OBJECT_LOCKED`.
+- **Copier** une source `PENDING` : refusé (`409 OBJECT_LOCKED`), sauf si l'appelant rejoint la transaction de
+  la source (`X-OStore-Transaction-Id`) ; la copie entre alors dans cette même transaction.
+- Plus généralement, une copie faite avec `X-OStore-Transaction-Id` lit la source comme une lecture avec cet
+  en-tête : la **version en attente** de cette transaction si elle existe (objet `PENDING` ou remplacement en
+  attente), la version validée sinon.
+- Les conflits connus avant l'envoi (objet `PENDING` d'une autre transaction, remplacement en attente) sont
+  vérifiés **avant** d'écrire le blob, pour ne pas recevoir un gros fichier pour rien.
+- Le `ProblemDetail` de `OBJECT_LOCKED` ne cite **pas** l'identifiant de la transaction qui détient l'objet :
+  connaître cet identifiant suffit à valider ou annuler la transaction tant que l'authentification n'est pas
+  en place (ADR-0008).
 
 ### Durées de vie
 `ostore.transactions.default-ttl` = **PT15M**, `max-ttl` = **P1D**, prolongations comprises
@@ -62,14 +80,19 @@ transaction, qui doit être ouverte ; une autre transaction → `409 OBJECT_LOCK
 ### Cohérence
 - Le blob est écrit **avant** toute écriture en base (ADR-0006).
 - Dépôt en transaction, commit, rollback et expiration **verrouillent la ligne de la transaction**
-  (`FOR UPDATE`) : aucun objet ne peut rejoindre une transaction pendant sa clôture. Le port
+  (`FOR UPDATE`) : aucun objet ne peut rejoindre une transaction pendant sa clôture.
+- Remplacement et suppression **verrouillent aussi la ligne de l'objet visé** (`FOR UPDATE`) avant de
+  vérifier les conflits (révision du 2026-11-27) : sans ce verrou, un remplacement hors transaction concurrent
+  d'une mise en attente passerait, puis serait écrasé au commit. Une violation d'intégrité résiduelle est
+  traduite en `409 OBJECT_LOCKED`, jamais en `500`. Le port
   `UnitOfWork` expose la transaction SQL au cœur applicatif, sans dépendance à Spring.
 - Job d'expiration : sélection des transactions échues, puis verrouillage de chacune en
   `FOR UPDATE SKIP LOCKED` (sûr en cluster) ; les objets en attente sont supprimés et leurs blobs purgés.
 
 ### Visibilité (ADR-0009)
-Les listes d'un bucket ne montrent que les objets `ACTIVE`. Un objet `PENDING` reste lisible et supprimable
-par son identifiant ; un bucket qui en contient n'est pas vide.
+Les listes d'un bucket ne montrent que les objets `ACTIVE`. Un objet `PENDING` reste lisible par son
+identifiant ; il n'est supprimable que dans sa transaction (voir plus haut). Un bucket qui en contient n'est
+pas vide.
 
 ## Conséquences
 - Migration `V1_3_0` : table `OST_TRANSACTION`, colonnes `STATUS`, `TRANSACTION_ID` et

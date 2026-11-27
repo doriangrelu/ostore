@@ -48,6 +48,28 @@ Statuts : ⬜ À faire · 🟦 En cours · 🟨 À valider (utilisateur) · ✅ 
 | T3.5 | API : `TransactionApi`, en-têtes `X-OStore-Transaction-Id` / `X-OStore-Pending-Ttl`, lecture de la version en attente | ✅ | — |
 | T3.6 | **TI traversants transactions** | ✅ | Commit, rollback, expiration implicite, remplacement en attente, prolongation et erreurs ; sur PostgreSQL et Oracle |
 
+## M3b — Durcissement (revue indépendante du 2026-11-27)
+
+Constats et décisions : [revue du 2026-11-27](revues/2026-11-27-revue-independante.md). À livrer avant la
+suite du jalon M4.
+
+| ID | Tâche | Statut | Critères de validation |
+|---|---|---|---|
+| T3b.1 | `Range` ignoré (plusieurs plages, inversé) : contenu complet servi en un passage, sans relecture par Spring (ADR-0015 §3) | ⬜ | TI : `Range` multi-plages et inversé sur un gros objet → `200` complet, flux du driver lu une seule fois (défaut d'abord reproduit par le TI) |
+| T3b.2 | Objets `PENDING` réservés à leur transaction : remplacement, suppression, copie ; copie en transaction = version en attente ; conflits vérifiés avant l'envoi (ADR-0016 révisé) | ⬜ | TI sur PG et Oracle : remplacement, suppression et copie d'un `PENDING` sans sa transaction → `409` ; copie dans sa transaction → copie `PENDING`, annulée avec elle ; copie d'une version en attente |
+| T3b.3 | Verrou de ligne sur l'objet visé (remplacement, suppression dans une `UnitOfWork`) ; violation d'intégrité → `409 OBJECT_LOCKED` ; bascule du remplacement au commit ramenée dans le domaine (directive 3) | ⬜ | TI concurrent (deux requêtes, latch dans un driver de test) : remplacement hors transaction refusé pendant une mise en attente ; aucun `500` |
+| T3b.4 | Contenu jamais affiché par le navigateur : `attachment` toujours (nom par défaut = id), `nosniff`, CSP `sandbox` ; id de transaction retiré du message `OBJECT_LOCKED` | ⬜ | TI : en-têtes présents sur un objet sans nom ; `ProblemDetail` de `OBJECT_LOCKED` sans id de transaction |
+| T3b.5 | Taille maximale `ostore.limits.max-object-size` → `413 OBJECT_TOO_LARGE` avant écriture (dépôt, remplacement, copie) ; `Content-Type` de plus de 255 caractères → `400` (ADR-0018 §1) | ⬜ | TI : dépôt au-delà de la limite refusé sans blob écrit ; copie refusée ; `Content-Type` trop long refusé |
+| T3b.6 | Driver S3 : multipart natif au-delà du seuil, `AbortMultipartUpload` en cas d'échec, `abort()` d'un téléchargement fermé avant la fin, pool et délais configurables (ADR-0018 §2 et §4) | ⬜ | Kit de conformité vert ; envoi au-delà du seuil à mémoire bornée sur S3Mock ; téléchargement interrompu sans lecture du reste |
+| T3b.7 | SPI : copie native optionnelle (méthode par défaut), FileSystem et S3, repli en flux entre instances (ADR-0018 §3) | ⬜ | Kit de conformité étendu, vert sur les deux drivers ; TI de copie inchangés |
+| T3b.8 🔒 | Robustesse des erreurs : règle commune PG / Oracle pour une métadonnée vide (à valider), expiration isolée par transaction, jeton de continuation invalide → `400`, `DomainException` `sealed`, échec de planification de purge conservé en `suppressed` | ⬜ | TI sur PG et Oracle : métadonnée vide traitée à l'identique ; une transaction en échec ne bloque pas l'expiration des suivantes |
+| T3b.9 | Purge : délai de grâce `ostore.purge.delay`, intention de purge enregistrée avant l'écriture du blob, lot limité en SQL, suppressions de blobs hors transaction SQL | ⬜ | TI : lecture d'un objet remplacé pendant le délai de grâce ; blob purgé après un échec d'insertion |
+| T3b.10 | Clôture des transactions (commit, rollback, expiration) en SQL ensembliste, sans N+1 sous verrou ; pool JDBC documenté et configurable | ⬜ | TI transactions verts sur PG et Oracle ; nombre d'ordres SQL indépendant du nombre d'objets |
+| T3b.11 🔒 | CI et défauts réseau : `SONAR_TOKEN` limité à l'étape Sonar, `persist-credentials: false`, `distributionSha256Sum` du wrapper ; écoute locale par défaut jusqu'à M5 (à valider) | ⬜ | CI verte |
+
+Suivis hors de ce jalon : listage par préfixe en O(taille du bucket) et rétention de `OST_TRANSACTION`
+(M7, exploitation) ; autorisation et transaction rattachée à un principal (M5, voir la revue).
+
 ## M4 — Console d'administration (ADR-0017)
 
 | ID | Tâche | Statut | Critères de validation |

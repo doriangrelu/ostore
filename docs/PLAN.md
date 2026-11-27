@@ -157,6 +157,7 @@ reste derrière un feature flag.
 | **M1 — Buckets** | Socle technique (Spring Web, Spring Data JDBC, Flyway, Testcontainers) + buckets de bout en bout | Créer → lire → lister → supprimer, erreurs métier ; sur PostgreSQL **et** Oracle |
 | **M2 — Objets** | SPI + drivers FileSystem et S3 ; put/get/head/delete/list/copy ; streaming | Aller-retour d'un fichier de plusieurs Go à mémoire bornée ; même scénario sur chaque driver |
 | **M3 — Transactions** | open/commit/rollback/extend, visibilité, expiration, purge | Dépôt en attente → invisible → commit → visible ; dépôt → expiration → blob supprimé |
+| **M3b — Durcissement** | Correctifs de la revue du 2026-11-27 : objets `PENDING` réservés à leur transaction, verrous, contenu jamais affiché, taille maximale, multipart S3 natif, copie native (ADR-0016 révisé, ADR-0018) | Règles `PENDING` et concurrence sur PG et Oracle ; dépôt trop gros refusé ; envoi S3 au-delà du seuil à mémoire bornée |
 | **M4 — Console** | Console d'administration Vue 3 désactivable (ADR-0017) : buckets, objets, transactions ; liste des transactions et statistiques de bucket dans le contrat | Console servie si activée, `404` sinon ; liste des transactions filtrée ; spécification OpenAPI à jour |
 | **M5 — Sécurité** | Authentification de l'API **et** de la console (ADR-0008) | Appels non authentifiés refusés ; console accessible après connexion |
 | **M6 — Multipart** | Endpoints multipart JSON (flag, ADR-0010) | Upload multipart parallèle et repris → lecture complète et par `Range` |

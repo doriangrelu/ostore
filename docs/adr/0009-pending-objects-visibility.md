@@ -1,7 +1,9 @@
 # ADR-0009 — Visibilité des objets en attente
 
 - Statut : **Accepté** (choix utilisateur, 2026-09-25). Révisé le 2026-09-30 : les objets sont désignés par
-  leur identifiant (ADR-0015), il n'y a plus d'accès par clé.
+  leur identifiant (ADR-0015), il n'y a plus d'accès par clé. Révisé le 2026-11-27 : un objet en attente se
+  lit par son identifiant, mais ne se remplace, ne se supprime ni ne se copie que dans sa transaction
+  (ADR-0016).
 
 ## Décision
 Sémantique « read committed » :
@@ -11,6 +13,8 @@ Sémantique « read committed » :
   `/content`), avec son statut et l'identifiant de sa transaction dans la réponse : le micro-service
   validateur, qui reçoit ces identifiants, peut inspecter les fichiers avant de valider la transaction.
 - Connaître l'identifiant vaut droit de lecture tant que l'authentification n'est pas en place (ADR-0008).
+- Le remplacer, le supprimer ou le copier exige l'identifiant de sa transaction (ADR-0016, révision du
+  2026-11-27).
 
 ## Remplacement en transaction (tranché en M3, ADR-0016)
 Le remplacement d'un objet validé au sein d'une transaction crée une version en attente sous le même
