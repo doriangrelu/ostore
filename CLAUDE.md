@@ -79,6 +79,10 @@ conservé que si un tiers (autre micro-service) valide la transaction avant son 
     API publique (client TypeScript généré depuis l'OpenAPI), désactivable (`ostore.console.enabled`, `false` par défaut).
     Composants façon shadcn (shadcn-vue + Reka UI + Tailwind, code dans le dépôt), **pas de PrimeVue** ;
     dépendances front sous licence permissive uniquement (MIT, ISC, Apache 2.0, BSD).
+22. **Superpowers** : le développement est conduit avec les skills Superpowers (cadrage, plan, TDD, débogage
+    méthodique, revue de code, vérification avant de conclure, sous-agents pour les étapes indépendantes).
+    Les directives ci-dessus priment : le TDD passe par les TI traversants (ADR-0011), un worktree n'est qu'une
+    branche de moins d'un jour (ADR-0012). Détail : [workflow.md](docs/conventions/workflow.md#superpowers).
 
 ## Skills projet (`.claude/skills/`)
 

@@ -11,6 +11,21 @@
    Mise à jour de la doc touchée (ADR, conventions, CLAUDE.md, README).
 6. **Commit** : un commit par tâche (ou sous-tâche cohérente), selon la convention ci-dessous.
 
+## Superpowers
+
+Le cycle ci-dessus est conduit avec les skills Superpowers, qui ne remplacent ni les directives de `CLAUDE.md`
+ni les skills projet (`task-workflow`, `integration-test`, `db-migration`…) ; en cas de conflit, le projet prime.
+
+| Étape du cycle | Skill Superpowers | Précision OStore |
+|---|---|---|
+| Cadrer | `brainstorming`, puis `writing-plans` | Options à trancher soumises à l'utilisateur ; choix structurant → ADR (`new-adr`) |
+| Réaliser | `test-driven-development` | Le test qui échoue d'abord est un TI traversant (ADR-0011) ; test unitaire seulement pour une règle pure |
+| Défaut, test rouge | `systematic-debugging` | Cause racine avant tout correctif |
+| Étapes indépendantes | `subagent-driven-development`, `dispatching-parallel-agents` | Deux ou trois tâches lourdes en parallèle au plus |
+| Isoler le travail | `using-git-worktrees` | Branche de moins d'un jour, intégrée sur `main` (ADR-0012) |
+| Avant de conclure | `requesting-code-review`, puis `verification-before-completion` | `./mvnw verify` vert, sortie à l'appui |
+| Intégrer | `finishing-a-development-branch` | Commit Conventional Commits et push sur `main` (`task-workflow`) |
+
 ## Trunk-based development (ADR-0012)
 - On intègre sur `main` par **petits incréments** (commit direct ou branche de moins d'un jour).
 - Avant chaque push : `./mvnw verify` vert en local. Si `main` casse, on corrige ou on revert
