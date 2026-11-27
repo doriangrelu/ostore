@@ -24,6 +24,7 @@ import io.github.doriangrelu.ostore.application.port.out.UnitOfWork;
 import io.github.doriangrelu.ostore.application.result.ObjectPage;
 import io.github.doriangrelu.ostore.application.result.TransactionDetails;
 import io.github.doriangrelu.ostore.domain.exception.TransactionNotFoundException;
+import io.github.doriangrelu.ostore.domain.model.StoredObject;
 import io.github.doriangrelu.ostore.domain.model.Transaction;
 import io.github.doriangrelu.ostore.domain.model.vo.TransactionPolicy;
 import io.github.doriangrelu.ostore.domain.model.vo.TransactionStatus;
@@ -86,7 +87,7 @@ public final class TransactionService implements TransactionUseCases {
             var current = lock(id);
             var committed = current.commit(clock.instant());
             if (committed != current) {
-                objects.applyReplacements(id);
+                objects.findPendingReplacements(id).forEach(this::commitReplacement);
                 objects.activatePending(id);
                 return details(transactions.update(committed));
             }
@@ -123,6 +124,14 @@ public final class TransactionService implements TransactionUseCases {
             }
         }
         return expired;
+    }
+
+    /** Commit d'un remplacement en attente : l'objet visé, verrouillé, prend la version en attente. */
+    private void commitReplacement(StoredObject replacement) {
+        var target = objects.lock(replacement.publicId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "target of pending replacement %s not found".formatted(replacement.id())));
+        objects.commitReplacement(replacement, target.withCommittedReplacement(replacement));
     }
 
     /**

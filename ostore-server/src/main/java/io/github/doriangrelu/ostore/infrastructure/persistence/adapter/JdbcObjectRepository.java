@@ -18,6 +18,7 @@ package io.github.doriangrelu.ostore.infrastructure.persistence.adapter;
 import io.github.doriangrelu.ostore.application.port.out.BlobPurgeQueue;
 import io.github.doriangrelu.ostore.application.port.out.ObjectRepository;
 import io.github.doriangrelu.ostore.domain.exception.ConcurrentObjectUpdateException;
+import io.github.doriangrelu.ostore.domain.exception.ObjectLockedException;
 import io.github.doriangrelu.ostore.domain.model.ObjectSummary;
 import io.github.doriangrelu.ostore.domain.model.StoredObject;
 import io.github.doriangrelu.ostore.domain.model.vo.ObjectStatus;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.relational.core.conversion.DbActionExecutionException;
 import org.springframework.stereotype.Repository;
@@ -50,9 +52,25 @@ public class JdbcObjectRepository implements ObjectRepository {
         this.purgeQueue = purgeQueue;
     }
 
+    /**
+     * Un second remplacement en attente du même objet viole l'unicité de {@code REPLACES_OBJECT_ID} : filet de
+     * sécurité derrière le verrou de l'objet, traduit en conflit métier plutôt qu'en erreur serveur.
+     */
     @Override
     public StoredObject insert(StoredObject object) {
-        return entities.save(StoredObjectEntity.newRow(object)).toDomain();
+        try {
+            return entities.save(StoredObjectEntity.newRow(object)).toDomain();
+        } catch (DuplicateKeyException | DbActionExecutionException e) {
+            if (object.replaces() != null && isDuplicateKey(e)) {
+                throw new ObjectLockedException(object.publicId());
+            }
+            throw e;
+        }
+    }
+
+    @Override
+    public Optional<StoredObject> lock(UUID id) {
+        return entities.findLockedById(id).map(StoredObjectEntity::toDomain);
     }
 
     @Override
@@ -110,18 +128,19 @@ public class JdbcObjectRepository implements ObjectRepository {
     }
 
     @Override
-    @Transactional
-    public void applyReplacements(UUID transactionId) {
-        entities.findByTransactionIdAndStatus(transactionId, PENDING).stream()
+    public List<StoredObject> findPendingReplacements(UUID transactionId) {
+        return entities.findByTransactionIdAndStatus(transactionId, PENDING).stream()
                 .filter(row -> row.replacesObjectId() != null)
-                .forEach(replacement -> {
-                    var target =
-                            entities.findById(replacement.replacesObjectId()).orElseThrow();
-                    // La ligne interne disparaît d'abord : elle référence l'objet visé.
-                    entities.delete(replacement);
-                    entities.save(target.withContentOf(replacement));
-                    purgeQueue.schedule(target.blobLocation());
-                });
+                .map(StoredObjectEntity::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void commitReplacement(StoredObject replacement, StoredObject committed) {
+        // La ligne interne disparaît d'abord : elle référence l'objet visé. Son blob n'est pas purgé, il est repris.
+        entities.deleteById(replacement.id());
+        replace(committed);
     }
 
     @Override
@@ -144,6 +163,10 @@ public class JdbcObjectRepository implements ObjectRepository {
     @Override
     public boolean existsInBucket(UUID bucketId) {
         return entities.existsByBucketId(bucketId);
+    }
+
+    private static boolean isDuplicateKey(RuntimeException e) {
+        return e instanceof DuplicateKeyException || e.getCause() instanceof DuplicateKeyException;
     }
 
     private void deleteAndPurge(StoredObjectEntity entity) {

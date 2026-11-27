@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.github.doriangrelu.ostore.contract.dto.CopyObjectRequest;
-import io.github.doriangrelu.ostore.contract.dto.CreateBucketRequest;
 import io.github.doriangrelu.ostore.contract.dto.ExtendTransactionRequest;
 import io.github.doriangrelu.ostore.contract.dto.ObjectStatus;
 import io.github.doriangrelu.ostore.contract.dto.ObjectSummaryResponse;
@@ -296,12 +295,5 @@ public interface TransactionScenarios extends IntegrationScenario {
                                         new InputStreamResource(new ByteArrayInputStream(V1))))
                         .code())
                 .isEqualTo("CONFLICTING_TRANSACTION_HEADERS");
-    }
-
-    /** Crée un bucket au nom unique. */
-    default String newBucket() {
-        var name = uniqueBucketName();
-        rest().create(new CreateBucketRequest(name));
-        return name;
     }
 }

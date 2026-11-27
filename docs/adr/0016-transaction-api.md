@@ -83,8 +83,9 @@ validateur doit pouvoir valider exactement ce qu'il a inspecté.
   (`FOR UPDATE`) : aucun objet ne peut rejoindre une transaction pendant sa clôture.
 - Remplacement et suppression **verrouillent aussi la ligne de l'objet visé** (`FOR UPDATE`) avant de
   vérifier les conflits (révision du 2026-11-27) : sans ce verrou, un remplacement hors transaction concurrent
-  d'une mise en attente passerait, puis serait écrasé au commit. Une violation d'intégrité résiduelle est
-  traduite en `409 OBJECT_LOCKED`, jamais en `500`. Le port
+  d'une mise en attente passerait, puis serait écrasé au commit. Verrous toujours pris dans l'ordre du commit
+  (transaction, puis objet), donc sans interblocage. Filet de sécurité : un second remplacement en attente du
+  même objet (unicité de `REPLACES_OBJECT_ID`) est traduit en `409 OBJECT_LOCKED`, jamais en `500`. Le port
   `UnitOfWork` expose la transaction SQL au cœur applicatif, sans dépendance à Spring.
 - Job d'expiration : sélection des transactions échues, puis verrouillage de chacune en
   `FOR UPDATE SKIP LOCKED` (sûr en cluster) ; les objets en attente sont supprimés et leurs blobs purgés.

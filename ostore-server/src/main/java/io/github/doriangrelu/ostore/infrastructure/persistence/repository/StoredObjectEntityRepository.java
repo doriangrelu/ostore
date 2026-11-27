@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
+import org.springframework.data.relational.core.sql.LockMode;
+import org.springframework.data.relational.repository.Lock;
 import org.springframework.data.repository.ListCrudRepository;
 
 /**
@@ -40,6 +42,9 @@ public interface StoredObjectEntityRepository extends ListCrudRepository<StoredO
             + " FROM OST_OBJECT ";
     String ACTIVE_IN_BUCKET = "WHERE BUCKET_ID = :bucketId AND STATUS = 'ACTIVE'";
     String PAGE = " ORDER BY ID FETCH FIRST :limit ROWS ONLY";
+
+    @Lock(LockMode.PESSIMISTIC_WRITE)
+    Optional<StoredObjectEntity> findLockedById(UUID id);
 
     boolean existsByBucketId(UUID bucketId);
 

@@ -153,6 +153,33 @@ public record StoredObject(
                 now);
     }
 
+    /**
+     * Validation d'un remplacement en attente (ADR-0016) : cet objet prend le contenu, le nom et les métadonnées de
+     * la version en attente, garde son identifiant et sa date de création, et redevient actif. Son ancien blob est à
+     * purger ; celui de la version en attente devient le sien.
+     *
+     * @throws IllegalArgumentException si {@code replacement} n'est pas un remplacement de cet objet
+     */
+    public StoredObject withCommittedReplacement(StoredObject replacement) {
+        if (!id.equals(replacement.replaces())) {
+            throw new IllegalArgumentException("%s is not a replacement of object %s".formatted(replacement.id(), id));
+        }
+        return new StoredObject(
+                id,
+                bucketId,
+                replacement.name(),
+                replacement.blob(),
+                replacement.size(),
+                replacement.etag(),
+                replacement.contentType(),
+                replacement.metadata(),
+                ObjectStatus.ACTIVE,
+                replacement.transactionId(),
+                null,
+                createdAt,
+                replacement.updatedAt());
+    }
+
     /** Vue publique : un remplacement en attente se présente sous l'identifiant de l'objet visé. */
     public UUID publicId() {
         return replaces != null ? replaces : id;

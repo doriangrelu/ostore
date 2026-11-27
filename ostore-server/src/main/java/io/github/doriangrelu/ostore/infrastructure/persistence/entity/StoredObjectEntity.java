@@ -27,7 +27,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
@@ -64,32 +63,6 @@ public record StoredObjectEntity(
     /** Mise à jour de cette ligne avec l'état de l'objet, à la version lue. */
     public StoredObjectEntity updatedWith(StoredObject object) {
         return of(object, version);
-    }
-
-    /**
-     * Commit d'un remplacement : cette ligne (objet visé) prend le contenu de la version en attente, garde son
-     * identifiant et sa date de création, et redevient active.
-     */
-    public StoredObjectEntity withContentOf(StoredObjectEntity replacement) {
-        var copiedMetadata = replacement.metadata().stream()
-                .map(entry -> new ObjectMetadataEntity(entry.name(), entry.value()))
-                .collect(Collectors.toSet());
-        return new StoredObjectEntity(
-                id,
-                bucketId,
-                replacement.objectName(),
-                replacement.driverId(),
-                replacement.blobPath(),
-                replacement.sizeBytes(),
-                replacement.etag(),
-                replacement.contentType(),
-                ObjectStatus.ACTIVE.name(),
-                replacement.transactionId(),
-                null,
-                createdAt,
-                replacement.updatedAt(),
-                copiedMetadata,
-                version);
     }
 
     public StoredObject toDomain() {

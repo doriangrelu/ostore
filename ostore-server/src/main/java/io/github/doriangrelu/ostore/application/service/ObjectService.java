@@ -63,7 +63,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Écritures transactionnelles (ADR-0016) : la transaction rejointe est vérifiée avant d'écrire le blob (échec
  * rapide), puis <b>verrouillée</b> au moment d'enregistrer l'objet, pour qu'aucune écriture ne la rejoigne
- * pendant sa clôture. Un objet en attente n'est remplacé, supprimé ni copié que dans sa propre transaction : le
+ * pendant sa clôture. Remplacement et suppression verrouillent ensuite la ligne de l'objet visé : toujours dans cet
+ * ordre, celui du commit, ce qui exclut tout interblocage. Un objet en attente n'est remplacé, supprimé ni copié que dans sa propre transaction : le
  * validateur valide exactement ce qu'il a pu inspecter.
  */
 public final class ObjectService implements ObjectUseCases {
@@ -174,18 +175,20 @@ public final class ObjectService implements ObjectUseCases {
 
     @Override
     public void delete(UUID id, @Nullable UUID transactionId) {
-        var object = get(id, null);
-        ensureOwnedBy(object, TransactionMode.of(transactionId, null));
-        objects.findPendingReplacement(id).ifPresent(replacement -> {
-            throw new ObjectLockedException(id, Objects.requireNonNull(replacement.transactionId()));
-        });
-        if (!object.isPending()) {
-            objects.delete(object);
-            return;
-        }
-        // Retirer un objet de sa transaction exige qu'elle soit ouverte, et verrouillée contre sa clôture.
+        var mode = TransactionMode.of(transactionId, null);
+        var found = get(id, null);
+        ensureOwnedBy(found, mode);
         unitOfWork.execute(() -> {
-            lockOpen(Objects.requireNonNull(object.transactionId()), clock.instant());
+            // Verrous dans l'ordre du commit : retirer un objet de sa transaction exige qu'elle soit ouverte, et
+            // verrouillée contre sa clôture ; puis l'objet, contre un remplacement préparé en même temps.
+            if (found.isPending()) {
+                lockOpen(Objects.requireNonNull(found.transactionId()), clock.instant());
+            }
+            var object = lockObject(id);
+            ensureOwnedBy(object, mode);
+            objects.findPendingReplacement(id).ifPresent(replacement -> {
+                throw new ObjectLockedException(id, Objects.requireNonNull(replacement.transactionId()));
+            });
             objects.delete(object);
             return object;
         });
@@ -202,14 +205,15 @@ public final class ObjectService implements ObjectUseCases {
      * </ul>
      */
     private StoredObject replaceLocked(ReplaceObjectCommand command, StoredObject.Content content, Instant now) {
-        var current = objects.find(command.id()).orElseThrow(() -> new ObjectNotFoundException(command.id()));
+        // Verrous dans l'ordre du commit : la transaction rejointe d'abord, puis l'objet visé.
+        var transactionId = join(command.transaction(), now);
+        var current = lockObject(command.id());
         if (current.isPending()) {
+            // Sa propre transaction, déjà verrouillée par join (seul mode accepté pour un objet en attente).
             ensureOwnedBy(current, command.transaction());
-            lockOpen(Objects.requireNonNull(current.transactionId()), now);
             return objects.replace(current.withContent(content, command.name(), command.metadata(), now));
         }
         var pending = objects.findPendingReplacement(current.id());
-        var transactionId = join(command.transaction(), now);
         if (transactionId == null) {
             pending.ifPresent(replacement -> {
                 throw new ObjectLockedException(current.id(), Objects.requireNonNull(replacement.transactionId()));
@@ -282,6 +286,13 @@ public final class ObjectService implements ObjectUseCases {
                         .insert(Transaction.open(null, policy.resolve(ttl), now))
                         .id();
         };
+    }
+
+    /** Objet (jamais une ligne interne de remplacement) verrouillé jusqu'à la fin de l'unité de travail. */
+    private StoredObject lockObject(UUID id) {
+        return objects.lock(id)
+                .filter(object -> object.replaces() == null)
+                .orElseThrow(() -> new ObjectNotFoundException(id));
     }
 
     private Transaction lockOpen(UUID transactionId, Instant now) {

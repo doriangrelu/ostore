@@ -21,7 +21,6 @@ import static org.awaitility.Awaitility.await;
 
 import io.github.doriangrelu.ostore.contract.constant.OStoreHeaders;
 import io.github.doriangrelu.ostore.contract.dto.CopyObjectRequest;
-import io.github.doriangrelu.ostore.contract.dto.CreateBucketRequest;
 import io.github.doriangrelu.ostore.contract.dto.ObjectSummaryResponse;
 import io.github.doriangrelu.ostore.driver.spi.testing.SyntheticContent;
 import io.github.doriangrelu.ostore.it.support.IntegrationScenario;
@@ -201,13 +200,6 @@ public interface ObjectScenarios extends IntegrationScenario {
         // When : le bucket est vidé, Then : il peut être supprimé
         objects().delete(original.id());
         rest().delete(bucket);
-    }
-
-    /** Crée un bucket au nom unique. */
-    default String newBucket() {
-        var name = uniqueBucketName();
-        rest().create(new CreateBucketRequest(name));
-        return name;
     }
 
     static String md5(byte[] content) {

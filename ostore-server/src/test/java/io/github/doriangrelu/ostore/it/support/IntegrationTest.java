@@ -15,14 +15,18 @@
  */
 package io.github.doriangrelu.ostore.it.support;
 
+import io.github.doriangrelu.ostore.application.port.in.ObjectUseCases;
 import io.github.doriangrelu.ostore.application.port.out.ObjectRepository;
 import io.github.doriangrelu.ostore.application.port.out.StorageDrivers;
 import io.github.doriangrelu.ostore.it.client.OStoreRestClient;
 import io.github.doriangrelu.ostore.it.client.ObjectRestClient;
 import io.github.doriangrelu.ostore.it.client.TransactionRestClient;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Application OStore complète démarrée sur un port aléatoire, appelée par de vrais clients HTTP.
@@ -48,6 +52,12 @@ abstract class IntegrationTest implements IntegrationScenario {
     @Autowired
     private StorageDrivers drivers;
 
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private ObjectUseCases objectUseCases;
+
     @Override
     public OStoreRestClient rest() {
         return new OStoreRestClient(baseUrl());
@@ -66,6 +76,12 @@ abstract class IntegrationTest implements IntegrationScenario {
     @Override
     public StorageProbe storage() {
         return new StorageProbe(objectRepository, drivers);
+    }
+
+    @Override
+    public UncommittedStaging stageWithoutCommitting(UUID objectId, UUID transactionId, byte[] content) {
+        return UncommittedStaging.start(
+                new TransactionTemplate(transactionManager), objectUseCases, objectId, transactionId, content);
     }
 
     private String baseUrl() {

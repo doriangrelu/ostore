@@ -18,6 +18,7 @@ package io.github.doriangrelu.ostore.it.support;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import io.github.doriangrelu.ostore.contract.dto.CreateBucketRequest;
 import io.github.doriangrelu.ostore.it.client.OStoreRestClient;
 import io.github.doriangrelu.ostore.it.client.ObjectRestClient;
 import io.github.doriangrelu.ostore.it.client.TransactionRestClient;
@@ -47,9 +48,22 @@ public interface IntegrationScenario {
     /** Accès au stockage physique (chemins enregistrés, présence des blobs). */
     StorageProbe storage();
 
+    /**
+     * Remplacement préparé dans la transaction {@code transactionId}, comme par une requête encore en cours : non
+     * validé en base jusqu'à la fermeture du résultat.
+     */
+    UncommittedStaging stageWithoutCommitting(UUID objectId, UUID transactionId, byte[] content);
+
     /** Nom de bucket unique : isole les scénarios sans nettoyer la base. */
     default String uniqueBucketName() {
         return "it-" + UUID.randomUUID().toString().substring(0, 18);
+    }
+
+    /** Crée un bucket au nom unique. */
+    default String newBucket() {
+        var name = uniqueBucketName();
+        rest().create(new CreateBucketRequest(name));
+        return name;
     }
 
     /** Erreur REST (ProblemDetail) levée par l'appel ; échec d'assertion si l'appel réussit. */

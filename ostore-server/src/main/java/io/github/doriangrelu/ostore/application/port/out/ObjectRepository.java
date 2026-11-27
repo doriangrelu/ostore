@@ -37,6 +37,13 @@ public interface ObjectRepository {
      */
     StoredObject replace(StoredObject updated);
 
+    /**
+     * Objet verrouillé jusqu'à la fin de la transaction SQL courante ({@code FOR UPDATE}) : toute écriture qui le
+     * modifie, le supprime ou lui prépare un remplacement passe par ce verrou, pris <b>après</b> celui de la
+     * transaction rejointe (même ordre que le commit, donc sans interblocage).
+     */
+    Optional<StoredObject> lock(UUID id);
+
     /** Ligne par identifiant (objet, ou remplacement en attente). */
     Optional<StoredObject> find(UUID id);
 
@@ -55,8 +62,16 @@ public interface ObjectRepository {
 
     long countByTransaction(UUID transactionId);
 
-    /** Commit : applique les remplacements en attente aux objets visés (anciens blobs purgés). */
-    void applyReplacements(UUID transactionId);
+    /** Remplacements en attente de la transaction (lignes internes). */
+    List<StoredObject> findPendingReplacements(UUID transactionId);
+
+    /**
+     * Commit d'un remplacement : supprime la ligne interne en attente, dont le blob est repris par l'objet visé,
+     * puis enregistre l'objet visé mis à jour et planifie la purge de son ancien blob.
+     *
+     * @param committed objet visé après validation ({@link StoredObject#withCommittedReplacement})
+     */
+    void commitReplacement(StoredObject replacement, StoredObject committed);
 
     /** Commit : les nouveaux objets en attente de la transaction deviennent actifs. */
     void activatePending(UUID transactionId);

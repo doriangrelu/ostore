@@ -20,6 +20,11 @@ import java.util.UUID;
 /** L'objet est engagé dans une autre transaction (écriture ou remplacement en attente). */
 public final class ObjectLockedException extends DomainException {
 
+    /** Objet engagé dans une transaction en attente, sans qu'on sache laquelle (conflit détecté par la base). */
+    public ObjectLockedException(UUID objectId) {
+        super("Object %s is locked by a pending transaction".formatted(objectId));
+    }
+
     public ObjectLockedException(UUID objectId, UUID transactionId) {
         super("Object %s is locked by pending transaction %s".formatted(objectId, transactionId));
     }
